@@ -560,14 +560,17 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     except Exception:
         pass
 
+    # Ensure that the expected keys are present in the updateddata dictionary
+    if 'issuedata' not in updateddata or updateddata['issuedata'] is None:
+        logger.warn(
+            'Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
+        return {'status': 'incomplete'}
+
     issuedata = updateddata['issuedata']
     anndata = updateddata['annualchk']
     nostatus = updateddata['nostatus']
     json_updated = updateddata['json_updated']
     importantdates = updateddata['importantdates']
-    if issuedata is None:
-        logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
-        return {'status': 'incomplete'}
 
     if any([calledfrom is None, calledfrom == 'maintenance']):
         issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
