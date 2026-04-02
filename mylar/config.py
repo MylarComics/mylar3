@@ -928,13 +928,13 @@ class Config(object):
             for dcp_attr, dcp_key in dcpp_migrate_list:
                 if dcp_key in self.OLD_VALUES.keys():
                     setattr(self, dcp_attr, self.OLD_VALUES[dcp_key])
-                    config.set('DCPP', dcp_key, str(getattr(self, dcp_attr))
+                    config.set('DCPP', dcp_key, str(getattr(self, dcp_attr)))
+
         if self.newconfig < 17:
             logger.info('Making releases provider configurable')
             config.add_section('Release Provider')
             self.RELEASE_PROVIDER_URL = 'https://walksoftly.itsaninja.party'
             config.set('Release Provider', 'release_provider_url', self.RELEASE_PROVIDER_URL)
-            config.set('RELEASE_PROVIDER_URL', 'https://walksoftly.itsaninja.party')
              
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
