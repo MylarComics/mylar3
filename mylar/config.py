@@ -170,7 +170,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOG_LEVEL': (int, 'Logs', 1),
 
     'GIT_PATH' : (str, 'Git', None),
-    'GIT_USER' : (str, 'Git', 'mylar3'),
+    'GIT_USER' : (str, 'Git', 'MylarComics'),
     'GIT_TOKEN' : (str, 'Git', None),
     'GIT_BRANCH' : (str, 'Git', None),
     'CHECK_GITHUB' : (bool, 'Git', False),

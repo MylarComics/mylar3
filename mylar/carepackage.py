@@ -109,7 +109,7 @@ class carePackage(object):
                          'current_version_name': mylar.CURRENT_VERSION_NAME,
                          'current_release_name': mylar.CURRENT_RELEASE_NAME}
 
-        if vers_vals['current_branch'] == 'master' and vers_vals['current_version_name'] is not None:
+        if vers_vals['current_branch'] == 'stable' and vers_vals['current_version_name'] is not None:
             panic_name = 'carepackage_%s.zip' % (vers_vals['current_version_name'])
         else:
             # If there are multiple refs listed in current_branch, concatenate and sanitse them for file naming
