@@ -407,7 +407,7 @@ def initialize(config_file):
 
             if update_imprints is True:
                 PUBLISHER_IMPRINTS = None
-                req_pub = requests.get('https://mylar3.github.io/publisher_imprints/imprints.json', verify=True)
+                req_pub = requests.get('https://mylarcomics.github.io/publisher_imprints/imprints.json', verify=True)
                 try:
                     json_pub = req_pub.json()
                     with open(pub_path, 'w', encoding='utf-8') as outfile:

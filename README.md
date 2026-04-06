@@ -1,34 +1,30 @@
-## ![Mylar Logo](https://github.com/mylar3/mylar3/blob/master/data/images/mylarlogo.png) Mylar3
+## ![Mylar Logo](https://github.com/MylarComics/mylar3/blob/stable/data/images/mylarlogo.png) Mylar3
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/mylar3/mylar3?color=blue&label=current%20release&sort=semver)](https://github.com/mylar3/mylar3/releases)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/MylarComics/mylar3?color=blue&label=current%20release&sort=semver)](https://github.com/MylarComics/mylar3/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/linuxserver/mylar3)](https://hub.docker.com/r/linuxserver/mylar3)
-
-[![Discord](https://img.shields.io/discord/826493118106697758?label=Discord&color=blue)](https://discord.gg/6UG94R7E8T)
 
 Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents.
 
 Mylar allows you to create a watchlist of series that it monitors for various things (new issues, updated information, etc). It will grab, sort, and rename downloaded issues.
 It will also allow you to monitor weekly pull-lists for items belonging to said watchlisted series to download, as well as being able to monitor and maintain story-arcs.
 
+This is the community continuity fork of mylar - originally located at https://github.com/mylar3/mylar3.
+
 ## Installation
 Install it via git clone or via [Docker](https://hub.docker.com/r/linuxserver/mylar3)
 
 ## Documentation
-Check out our [website](https://mylarcomics.com) for documentation!
+Check out our [website](https://mylar.nerdfirehurricane.com/) for documentation!
 
 ## Support & Discussion
 Please try to limit Github issues to bugs & enhancement requests ONLY
-- [Github](https://github.com/mylar3/mylar3/issues) (Bug & Feature requests only)
-- [Forums](https://forum.mylarcomics.com)
+- [Github](https://github.com/MylarComics/mylar3/issues) (Bug & Feature requests only)
 
 ## Development
-We welcome contributions! At present we ask that you submit changes to the 1000papercuts branch. 
-The python3-dev branch is considered stable and we will merge 1000papercuts to it on a regular 
-basis once given changes have been proven.
+We welcome contributions! Please submit changes to the nightly branch.  If they are high impact changes, please ensure that you've enabled a docker image to be built on your own branch.
 
 ## Live Support / Conversation
-- [Discord](https://discord.gg/6UG94R7E8T)
-- [IRC](https://web.libera.chat/?channels=#mylar)
+- [Discord](https://discord.gg/6qpyCZRZRB)
 
 ## Features
 - Abliity to be run on various OS' (windows, linux, macOS, Raspberry Pi, etc)
@@ -50,7 +46,7 @@ basis once given changes have been proven.
 AND SO MUCH MORE!
 
 ## Contributing
-If you wish to help out, please see our website: [contributing](https://mylarcomics.com/docs/contributing)
+If you wish to help out, please see our website: [contributing](https://mylar.nerdfirehurricane.com/docs/contributing)
  
 <p align="center">This project exists thanks to all the people who contribute - whether by code, assisting others or financial donations.</br> 
 To all those who have contributed, we thank you for your support.</p>

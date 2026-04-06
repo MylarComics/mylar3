@@ -164,8 +164,8 @@ def getVersion(ptv):
             branch = None
             branch_name = runGit('branch --contains %s' % cur_commit_hash, ptv)
             if not branch_name:
-                logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
-                branch = 'master'
+                logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Stable.' % branch)
+                branch = 'stable'
             else:
                 for line in branch_name.split('\n'):
                     if '*' in line:
@@ -176,8 +176,8 @@ def getVersion(ptv):
             logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, ptv['git_branch']))
             branch = ptv['git_branch']
         if not branch:
-            logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
-            branch = 'master'
+            logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Stable.' % branch)
+            branch = 'stable'
         else:
             logger.info('Branch detected & set to : %s' % branch)
 
@@ -241,8 +241,8 @@ def getVersion(ptv):
             except Exception as e:
                 logger.error('error: %s' % e)
 
-        if current_version_name is not None and current_release_name is None and branch == 'master':
-            # only master has tags - so if not master, no need to check at all.
+        if current_version_name is not None and current_release_name is None and branch == 'stable':
+            # only stable has tags - so if not stable, no need to check at all.
             # and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
             url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (ptv['git_user'], current_version_name)
             try:
@@ -269,7 +269,7 @@ def getVersion(ptv):
                 if branch:
                     logger.info('Branch detected & set to : ' + branch)
                 else:
-                    branch = 'master'
+                    branch = 'stable'
                     logger.warn('No branch specified within config - could not poll version from mylar. Defaulting to %s' % branch)
                 return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': branch, 'current_release_name': current_release_name}
         else:
@@ -282,11 +282,11 @@ def getVersion(ptv):
                     branch = version.MYLAR_VERSION
                     logger.info('Branch detected & set to : ' + branch)
                 except:
-                    branch = 'master'
+                    branch = 'stable'
                     logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
                 return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': branch, 'current_release_name': current_release_name}
 
-            logger.warn('Unable to determine which commit is currently being run. Defaulting to Master branch.')
+            logger.warn('Unable to determine which commit is currently being run. Defaulting to Stable branch.')
 
 def checkGithub(current_version=None):
     if current_version is None:
@@ -461,16 +461,14 @@ def versionload(cli_values=None, carepackage_call=False):
     else:
         hash = "unknown"
 
-    if mylar.CONFIG.GIT_BRANCH == 'master':
+    if mylar.CONFIG.GIT_BRANCH == 'stable':
         vers = 'M'
-    elif mylar.CONFIG.GIT_BRANCH == 'python3-dev':
+    elif mylar.CONFIG.GIT_BRANCH == 'nightly':
         vers = 'D'
-    elif mylar.CONFIG.GIT_BRANCH == '1000papercuts':
-        vers = 'E'
     else:
         vers = 'NONE'
 
-    mylar.USER_AGENT = 'Mylar3/' +str(hash) +'(' +vers +') +https://github.com/mylar3/mylar3/'
+    mylar.USER_AGENT = 'Mylar3/' +str(hash) +'(' +vers +') +https://github.com/MylarComics/mylar3/'
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 

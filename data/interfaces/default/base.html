@@ -310,10 +310,10 @@
                     }
                 } else if (data.current_version != data.latest_version && dc_behind > 0){
                     if (data.docker == 'true'){
-                        up_mess = 'A <a href="https://github.com/mylar3/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="#" onclick="'+cck+'">Close</a>';
+                        up_mess = 'A <a href="https://github.com/MylarComics/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="#" onclick="'+cck+'">Close</a>';
                         up_linemess = '<span class="version_display">'+dc_behind+' commits behind</span>';
                     } else {
-                        up_mess = 'A <a href="https://github.com/mylar3/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="update">Update</a> or <a href="#" onclick="'+cck+'">Close</a>';
+                        up_mess = 'A <a href="https://github.com/MylarComics/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="update">Update</a> or <a href="#" onclick="'+cck+'">Close</a>';
                         up_linemess = '<a href="#" onclick="location.href=\'update\';" title="Update now" class="version_display">'+dc_behind+' commits behind</a>';
                     }
                 } else if (data.current_version == data.latest_version && dc_behind === 0){

@@ -6,7 +6,7 @@ permissions:
   deployments: write
   statuses: read
 
-# Run on any branch that isn't master or p3-dev
+# Only run manually for now
 on: workflow_dispatch
 
 # Cancel previous run on this branch if a new push is made

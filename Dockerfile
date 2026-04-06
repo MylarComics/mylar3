@@ -3,7 +3,7 @@ FROM python:${BASE_VERSION}
 
 # set version label
 ARG MYLAR_COMMIT=v0.3.0
-ARG ORG=mylar3
+ARG ORG=MylarComics
 LABEL version ${BASE_VERSION}_${MYLAR_COMMIT}
 
 RUN \
@@ -20,7 +20,7 @@ echo "**** install system packages ****" && \
  zlib-dev=1.2.11-r3 \
  jpeg-dev=8-r6
 
-# It might be better to check out release tags than python3-dev HEAD.
+# It might be better to check out release tags than nightly HEAD.
 # For development work I reccomend mounting a full git repo from the
 # docker host over /app/mylar.
 RUN echo "**** install app ****" && \
