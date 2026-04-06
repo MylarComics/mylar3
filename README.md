@@ -1,9 +1,7 @@
-## ![Mylar Logo](https://github.com/mylar3/mylar3/blob/master/data/images/mylarlogo.png) Mylar3
+## ![Mylar Logo](https://github.com/MylarComics/mylar3/blob/master/data/images/mylarlogo.png) Mylar3
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/mylar3/mylar3?color=blue&label=current%20release&sort=semver)](https://github.com/mylar3/mylar3/releases)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/MylarComics/mylar3?color=blue&label=current%20release&sort=semver)](https://github.com/MylarComics/mylar3/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/linuxserver/mylar3)](https://hub.docker.com/r/linuxserver/mylar3)
-
-[![Discord](https://img.shields.io/discord/826493118106697758?label=Discord&color=blue)](https://discord.gg/6UG94R7E8T)
 
 Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents.
 
@@ -14,12 +12,11 @@ It will also allow you to monitor weekly pull-lists for items belonging to said 
 Install it via git clone or via [Docker](https://hub.docker.com/r/linuxserver/mylar3)
 
 ## Documentation
-Check out our [website](https://mylarcomics.com) for documentation!
+Check out our [website](https://mylar.nerdfirehurricane.com/) for documentation!
 
 ## Support & Discussion
 Please try to limit Github issues to bugs & enhancement requests ONLY
-- [Github](https://github.com/mylar3/mylar3/issues) (Bug & Feature requests only)
-- [Forums](https://forum.mylarcomics.com)
+- [Github](https://github.com/MylarComics/mylar3/issues) (Bug & Feature requests only)
 
 ## Development
 We welcome contributions! At present we ask that you submit changes to the 1000papercuts branch. 
@@ -27,8 +24,7 @@ The python3-dev branch is considered stable and we will merge 1000papercuts to i
 basis once given changes have been proven.
 
 ## Live Support / Conversation
-- [Discord](https://discord.gg/6UG94R7E8T)
-- [IRC](https://web.libera.chat/?channels=#mylar)
+- [Discord](https://discord.gg/6qpyCZRZRB)
 
 ## Features
 - Abliity to be run on various OS' (windows, linux, macOS, Raspberry Pi, etc)
