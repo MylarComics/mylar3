@@ -466,6 +466,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
     'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
+    'RELEASE_PROVIDER_URL' : (str, 'Release Provider', 'https://walksoftly.itsaninja.party'),
 
 })
 
@@ -513,7 +514,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 15
+            self.newconfig = 17
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -929,6 +930,12 @@ class Config(object):
                     setattr(self, dcp_attr, self.OLD_VALUES[dcp_key])
                     config.set('DCPP', dcp_key, str(getattr(self, dcp_attr)))
 
+        if self.newconfig < 17:
+            logger.info('Making releases provider configurable')
+            config.add_section('Release Provider')
+            self.RELEASE_PROVIDER_URL = 'https://walksoftly.itsaninja.party'
+            config.set('Release Provider', 'release_provider_url', self.RELEASE_PROVIDER_URL)
+             
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):

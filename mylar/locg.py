@@ -51,7 +51,8 @@ def locg(pulldate=None,weeknumber=None,year=None):
         params = {'week': str(weeknumber),
                   'year': str(year)}
 
-        url = 'https://walksoftly.itsaninja.party/newcomics.php'
+        url = '%s/newcomics.php' % mylar.CONFIG.RELEASE_PROVIDER_URL
+        logger.info(url)
 
         try:
             r = requests.get(url, params=params, verify=True, headers={'User-Agent': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
