@@ -20,9 +20,6 @@ Check out our [website](https://mylar.nerdfirehurricane.com/) for documentation!
 Please try to limit Github issues to bugs & enhancement requests ONLY
 - [Github](https://github.com/MylarComics/mylar3/issues) (Bug & Feature requests only)
 
-## Development
-We welcome contributions! Please submit changes to the nightly branch.  If they are high impact changes, please ensure that you've enabled a docker image to be built on your own branch.
-
 ## Live Support / Conversation
 - [Discord](https://discord.gg/6qpyCZRZRB)
 
@@ -46,7 +43,7 @@ We welcome contributions! Please submit changes to the nightly branch.  If they 
 AND SO MUCH MORE!
 
 ## Contributing
-If you wish to help out, please see our website: [contributing](https://mylar.nerdfirehurricane.com/docs/contributing)
- 
+If you wish to help out, please see our [contribution policy](CONTRIBUTING.md) for code contribution, and [our website](https://mylar.nerdfirehurricane.com/docs/contributing) for other ways you can help.
+
 <p align="center">This project exists thanks to all the people who contribute - whether by code, assisting others or financial donations.</br> 
 To all those who have contributed, we thank you for your support.</p>

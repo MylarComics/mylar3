@@ -514,7 +514,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 17
+            self.newconfig = 18
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -692,16 +692,8 @@ class Config(object):
             cc = maintenance.Maintenance('backup')
             bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
-            if self.CONFIG_VERSION < 15:
-                print('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                #11-provider ids
-                #12-ddl seperation into multiple providers, new keys, update tables
-                #13-remove dognzb and nzbsu as independent options (throw them under newznabs if present)
-                #14-put airdcpp variables into it's own section (DCPP) instead of under the DDL section
-                self.config_update()
+            print('Attempting to update configuration..')
+            self.config_update()
             setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
@@ -935,6 +927,16 @@ class Config(object):
             config.add_section('Release Provider')
             self.RELEASE_PROVIDER_URL = 'https://walksoftly.itsaninja.party'
             config.set('Release Provider', 'release_provider_url', self.RELEASE_PROVIDER_URL)
+
+        if self.CONFIG_VERSION < 18:
+            if self.GIT_USER is not None and self.GIT_USER == 'mylar3':
+                config.set('Git', 'GIT_USER', 'MylarComics')
+
+            if self.GIT_BRANCH is not None and self.GIT_BRANCH == 'master':
+                config.set('Git', 'GIT_BRANCH', 'stable')
+
+            if self.GIT_BRANCH is not None and self.GIT_BRANCH in ['python3-dev', '1000papercuts']:
+                config.set('Git', 'GIT_BRANCH', 'nightly')
              
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
