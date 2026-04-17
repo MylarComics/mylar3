@@ -337,7 +337,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                             chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issue_number_parser(issue).asInt]).fetchone()
 
                     if chkissue is None:
-                        logger.error('Invalid Issue_Number - please validate.')
+                        logger.error('Invalid Issue_Number [%s] for %s - please validate the filename/metadata.' % (issue, ofilename))
                         return
                     else:
                         logger.info('Int Issue_number compare found. continuing...')

@@ -257,7 +257,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
         #if comfilename == 'cvinfo':
             logger.info('comfilename: ' + comfilename)
-            logger.info('cvscanned_loc: ' + str(cv_location))
+            logger.info('cvscanned_loc: ' + str(cvscanned_loc))
             logger.info('comlocation: ' + os.path.dirname(comlocation))
             #if cvscanned_loc != comlocation:
             try:
@@ -558,6 +558,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                     if mylar.CONFIG.IMP_RENAME:
                         logger.fdebug('Renaming files according to configuration details : ' + str(mylar.CONFIG.FILE_FORMAT))
                         renameit = helpers.rename_param(watch_comicid, watch_comicname, watch_comicyear, watch_comiciss)
+                        if renameit is None:
+                            logger.error('Failed to rename %s - skipping.' % orig_filename)
+                            wat += 1
+                            continue
                         nfilename = renameit['nfilename']
 
                         dst_path = os.path.join(watch_comlocation, nfilename)
@@ -652,62 +656,72 @@ def scanLibrary(scan=None, queue=None):
                               "result":     'error'})
             return queue.put(valreturn)
         else:
-            mylar.IMPORT_STATUS = 'Now adding the completed results to the DB.'
-            logger.info('[IMPORT] Parsing/Reading of files completed!')
-            logger.info('[IMPORT] Attempting to import ' + str(int(soma['import_cv_ids'] + soma['import_count'])) + ' files into your watchlist.')
-            logger.info('[IMPORT-BREAKDOWN] Files with ComicIDs successfully extracted: ' + str(soma['import_cv_ids']))
-            logger.info('[IMPORT-BREAKDOWN] Files that had to be parsed: ' + str(soma['import_count']))
-            logger.info('[IMPORT-BREAKDOWN] Files that were unable to be parsed: ' + str(len(soma['failure_list'])))
-            logger.info('[IMPORT-BREAKDOWN] Files that caused errors during the import: ' + str(len(soma['utter_failure_list'])))
-            #logger.info('[IMPORT-BREAKDOWN] Failure Files: ' + str(soma['failure_list']))
-      
-            myDB = db.DBConnection()
+            try:
+                mylar.IMPORT_STATUS = 'Now adding the completed results to the DB.'
+                logger.info('[IMPORT] Parsing/Reading of files completed!')
+                logger.info('[IMPORT] Attempting to import ' + str(int(soma['import_cv_ids'] + soma['import_count'])) + ' files into your watchlist.')
+                logger.info('[IMPORT-BREAKDOWN] Files with ComicIDs successfully extracted: ' + str(soma['import_cv_ids']))
+                logger.info('[IMPORT-BREAKDOWN] Files that had to be parsed: ' + str(soma['import_count']))
+                logger.info('[IMPORT-BREAKDOWN] Files that were unable to be parsed: ' + str(len(soma['failure_list'])))
+                logger.info('[IMPORT-BREAKDOWN] Files that caused errors during the import: ' + str(len(soma['utter_failure_list'])))
+          
+                myDB = db.DBConnection()
 
-            #first we do the CV ones.
-            if int(soma['import_cv_ids']) > 0:
-                for i in soma['CV_import_comicids']:
-                    #we need to find the impid in the issueid_list as that holds the impid + other info
-                    abc = [x for x in soma['issueid_list'] if x['issueid'] == i['IssueID']]
-                    ghi = abc[0]['importinfo']
+                #first we do the CV ones.
+                if int(soma['import_cv_ids']) > 0:
+                    for i in soma['CV_import_comicids']:
+                        #we need to find the impid in the issueid_list as that holds the impid + other info
+                        abc = [x for x in soma['issueid_list'] if str(x['issueid']) == str(i['IssueID'])]
+                        if not abc:
+                            logger.error('[IMPORT] Could not find import info for IssueID: %s' % i['IssueID'])
+                            continue
+                        ghi = abc[0].get('importinfo')
+                        if not ghi:
+                            logger.error('[IMPORT] Missing import info for IssueID: %s' % i['IssueID'])
+                            continue
 
-                    nspace_dynamicname = re.sub(r'[\|\s]', '', ghi['dynamicname'].lower()).strip()                   
-                    #these all have related ComicID/IssueID's...just add them as is.
-                    controlValue = {"impID":        ghi['impid']}
-                    newValue = {"Status":           "Not Imported",
-                                "ComicName":        i['ComicName'], #helpers.conversion(i['ComicName']),
-                                "DisplayName":      i['ComicName'], #helpers.conversion(i['ComicName']),
-                                "DynamicName":      nspace_dynamicname, #helpers.conversion(nspace_dynamicname),
-                                "ComicID":          i['ComicID'],
-                                "IssueID":          i['IssueID'],
-                                "IssueNumber":      i['Issue_Number'], #helpers.conversion(i['Issue_Number']),
-                                "Volume":           ghi['volume'],
-                                "ComicYear":        ghi['comicyear'],
-                                "ComicFilename":    ghi['comfilename'], #helpers.conversion(ghi['comfilename']),
-                                "ComicLocation":    ghi['comlocation'], #helpers.conversion(ghi['comlocation']),
-                                "ImportDate":       helpers.today(),
-                                "WatchMatch":       None} #i['watchmatch']}
-                    myDB.upsert("importresults", newValue, controlValue)
-                
-            if int(soma['import_count']) > 0:
-                for ss in soma['import_by_comicids']:
+                        nspace_dynamicname = re.sub(r'[\|\s]', '', ghi.get('dynamicname', '').lower()).strip()
+                        #these all have related ComicID/IssueID's...just add them as is.
+                        controlValue = {"impID":        ghi['impid']}
+                        newValue = {"Status":           "Not Imported",
+                                    "ComicName":        i['ComicName'], 
+                                    "DisplayName":      i['ComicName'], 
+                                    "DynamicName":      nspace_dynamicname, 
+                                    "ComicID":          i['ComicID'],
+                                    "IssueID":          i['IssueID'],
+                                    "IssueNumber":      i['Issue_Number'], 
+                                    "Volume":           ghi['volume'],
+                                    "ComicYear":        ghi['comicyear'],
+                                    "ComicFilename":    ghi['comfilename'], 
+                                    "ComicLocation":    ghi['comlocation'], 
+                                    "ImportDate":       helpers.today(),
+                                    "WatchMatch":       None}
+                        myDB.upsert("importresults", newValue, controlValue)
+                    
+                if int(soma['import_count']) > 0:
+                    for ss in soma['import_by_comicids']:
 
-                    nspace_dynamicname = re.sub(r'[\|\s]', '', ss['dynamicname'].lower()).strip()                   
+                        nspace_dynamicname = re.sub(r'[\|\s]', '', ss.get('dynamicname', '').lower()).strip()                   
 
-                    controlValue = {"impID":        ss['impid']}
-                    newValue = {"ComicYear":        ss['comicyear'],
-                                "Status":           "Not Imported",
-                                "ComicName":        ss['comicname'], #helpers.conversion(ss['comicname']),
-                                "DisplayName":      ss['displayname'], #helpers.conversion(ss['displayname']),
-                                "DynamicName":      nspace_dynamicname, #helpers.conversion(nspace_dynamicname),
-                                "ComicID":          ss['comicid'],  #if it's been scanned in for cvinfo, this will be the CID - otherwise it's None
-                                "IssueID":          None,
-                                "Volume":           ss['volume'],
-                                "IssueNumber":      ss['issuenumber'], #helpers.conversion(ss['issuenumber']),
-                                "ComicFilename":    ss['comfilename'], #helpers.conversion(ss['comfilename']),
-                                "ComicLocation":    ss['comlocation'], #helpers.conversion(ss['comlocation']),
-                                "ImportDate":       helpers.today(),
-                                "WatchMatch":       ss['watchmatch']}
-                    myDB.upsert("importresults", newValue, controlValue)
+                        controlValue = {"impID":        ss['impid']}
+                        newValue = {"ComicYear":        ss['comicyear'],
+                                    "Status":           "Not Imported",
+                                    "ComicName":        ss['comicname'], 
+                                    "DisplayName":      ss['displayname'], 
+                                    "DynamicName":      nspace_dynamicname, 
+                                    "ComicID":          ss['comicid'],  
+                                    "IssueID":          None,
+                                    "Volume":           ss['volume'],
+                                    "IssueNumber":      ss['issuenumber'], 
+                                    "ComicFilename":    ss['comfilename'], 
+                                    "ComicLocation":    ss['comlocation'], 
+                                    "ImportDate":       helpers.today(),
+                                    "WatchMatch":       ss['watchmatch']}
+                        myDB.upsert("importresults", newValue, controlValue)
+            except Exception as e:
+                logger.error('[IMPORT] Exception while saving scan results to DB: {}'.format(e))
+                logger.error(traceback.format_exc())
+
 
             # because we could be adding volumes/series that span years, we need to account for this
             # add the year to the db under the term, valid-years

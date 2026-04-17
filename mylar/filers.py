@@ -416,7 +416,7 @@ class FileHandlers(object):
                             chkissue = self.myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(issue).asInt]).fetchone()
 
                     if chkissue is None:
-                        logger.error('Invalid Issue_Number - please validate.')
+                        logger.error('Invalid Issue_Number [%s] for %s - please validate the filename/metadata.' % (issue, ofilename))
                         return
                     else:
                         logger.info('Int Issue_number compare found. continuing...')

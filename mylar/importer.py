@@ -18,6 +18,7 @@
 import time
 import os, errno
 import sys
+import traceback
 import shlex
 import datetime
 import re
@@ -65,10 +66,16 @@ def addvialist(seriesQueue, issueWantQueue):
                 logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (seriesQueue.qsize()+1, item['comicid']))
                 mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
 
-            if 'suppress_addall' in item.keys():
-                addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
-            else:
-                addComictoDB(item['comicid'])
+            try:
+                if 'suppress_addall' in item.keys():
+                    addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
+                else:
+                    addComictoDB(item['comicid'])
+            except Exception as e:
+                logger.error('[MASS-ADD] Fatal error encountered during import of %s: %s' % (item.get('comicname', item['comicid']), e))
+
+                logger.error(traceback.format_exc())
+                continue
         elif issueWantQueue.qsize() > 0:
             time.sleep(1)
             issueItem = issueWantQueue.get(True)
@@ -165,9 +172,12 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
         if all([imported is not None, imported != 'None', mylar.CONFIG.IMP_PATHS is True]):
-            try:
-                comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
-            except Exception as e:
+            # Verify filelisting is present and has at least one entry
+            file_list = imported.get('filelisting')
+            if file_list and len(file_list) > 0:
+                comlocation = os.path.dirname(file_list[0].get('comiclocation'))
+            else:
+                logger.fdebug("[IMPORT] No file listing found in 'imported' data. comlocation remains None.")
                 comlocation = None
         else:
             comlocation = None
@@ -228,7 +238,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # gcd will return issue details (most importantly publishing date)
     if not mylar.CONFIG.CV_ONLY:
         if mismatch == "no" or mismatch is None:
-            gcdinfo=parseit.GCDScraper(comic['ComicName'], comic['ComicYear'], comic['ComicIssues'], comicid)
+            gcdinfo = parseit.GCDScraper(comic['ComicName'], comic['ComicYear'], comic['ComicIssues'], comicid)
             #print ("gcdinfo: " + str(gcdinfo))
             mismatch_com = "no"
             if gcdinfo == "No Match":
@@ -250,7 +260,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 resultURL = "/series/" + str(NewComicID) + "/"
                 #print ("variloop" + str(CV_EXcomicid['variloop']))
                 #if vari_loop == '99':
-                gcdinfo = parseit.GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=comicid, TotalIssues=0, issvariation="no", resultPublished=None)
+                try:
+                    gcdinfo = parseit.GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=comicid, TotalIssues=0, issvariation="no", resultPublished=None)
+                except Exception as e:
+                    logger.warn('GCD details scraper failed to parse data for %s: %s' % (comic['ComicName'], e))
+                    gcdinfo = "No Match"
 
     # print ("Series Published" + parseit.resultPublished)
 
@@ -776,15 +790,21 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
     controlValueDict = {"ComicID":     gcdcomicid}
 
-    comic = myDB.selectone('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation, ComicPublisher FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
-    ComicName = comic[0]
-    ComicYear = comic[1]
-    ComicIssues = comic[2]
-    ComicPublished = comic[3]
-    comlocation = comic[5]
-    ComicPublisher = comic[6]
-    #ComicImage = comic[4]
-    #print ("Comic:" + str(ComicName))
+    comic_row = myDB.selectone('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation, ComicPublisher FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
+    
+    if not comic_row:
+        logger.warn(f"Error fetching comic from DB: {gcdcomicid}")
+        newValueDict = {"ComicName": f"Fetch failed, entry missing from DB. ({gcdcomicid})", "Status": "Active"}
+        myDB.upsert("comics", newValueDict, controlValueDict)
+        return
+
+    ComicName = comic_row[0]
+    ComicYear = comic_row[1]
+    ComicIssues = comic_row[2]
+    ComicPublished = comic_row[3]
+    comlocation = comic_row[5]
+    ComicPublisher = comic_row[6]
+    #ComicImage = comic_row[4]
 
     newValueDict = {"Status":   "Loading"}
     myDB.upsert("comics", newValueDict, controlValueDict)
@@ -792,15 +812,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     # we need to lookup the info for the requested ComicID in full now
     #comic = cv.getComic(comicid,'comic')
 
-    if not comic:
-        logger.warn('Error fetching comic. ID for : ' + gcdcomicid)
-        if dbcomic is None:
-            newValueDict = {"ComicName":   "Fetch failed, try refreshing. (%s)" % (gcdcomicid),
-                    "Status":   "Active"}
-        else:
-            newValueDict = {"Status":   "Active"}
-        myDB.upsert("comics", newValueDict, controlValueDict)
-        return
+
 
     #run the re-sortorder here in order to properly display the page
     if pullupd is None:
@@ -860,7 +872,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
                   }
 
         if mylar.CONFIG.FOLDER_FORMAT == '':
-            comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
+            comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
         else:
             comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + helpers.replace_all(mylar.CONFIG.FOLDER_FORMAT, values)
 
@@ -934,8 +946,8 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
                     "ComicLocation":    comlocation,
                     #"ComicVersion":     comicVol,
                     "ComicImage":       ComicImage,
-                    "ComicImageURL":    comic.get('ComicImage', ''),
-                    "ComicImageALTURL": comic.get('ComicImageALT', ''),
+                    "ComicImageURL":    comic_row[4] if len(comic_row) > 4 else '',
+                    "ComicImageALTURL": '',
                     #"ComicPublisher":   comic['ComicPublisher'],
                     #"ComicPublished":   comicPublished,
                     "DateAdded":        helpers.today(),
@@ -972,7 +984,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
             if gcdinfo['gcdvariation'] == 'gcd':
                 #print ("gcd-variation accounted for.")
                 issdate = '0000-00-00'
-                int_issnum =  int (issis / 1000)
+                int_issnum = 0
             break
         if 'nn' in str(gcdval['GCDIssue']):
             #no number detected - GN, TP or the like
@@ -1086,7 +1098,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.CONFIG.AUTOWANT_UPCOMING and 'Present' in ComicPublished:
             logger.info("Checking this week's pullist for new issues of " + ComicName)
-            updater.newpullcheck(comic['ComicName'], gcomicid)
+            updater.newpullcheck(ComicName, gcomicid)
 
         #here we grab issues that have been marked as wanted above...
 

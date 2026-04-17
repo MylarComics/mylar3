@@ -65,22 +65,36 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
         else:
             n_odd+=1
             resultp = soup.findAll("tr", {"class": "listing_odd"})[n_odd]
-        rtp = resultp('a')[1]
-        resultName.append(helpers.cleanName(rtp.findNext(text=True)))
-        #print ( "Comic Name: " + str(resultName[n]) )
-        fip = resultp('a', href=True)[1]
-        resultID.append(fip['href'])
-        #print ( "ID: " + str(resultID[n]) )
+        links = resultp('a')
+        if len(links) > 1:
+            rtp = links[1]
+            resultName.append(helpers.cleanName(rtp.findNext(text=True)))
+            #print ( "Comic Name: " + str(resultName[n]) )
+            fip = resultp('a', href=True)[1]
+            resultID.append(fip['href'])
+            #print ( "ID: " + str(resultID[n]) )
+        else:
+            logger.fdebug(f"[GCD] Row {n} missing expected links. Skipping.")
+            n += 1
+            cnt -= 1 # adjust count if we skip a row to avoid further OOB
+            continue
 
-        subtxt3 = resultp('td')[3]
-        resultYear.append(subtxt3.findNext(text=True))
-        resultYear[n] = resultYear[n].replace(' ', '')
-        subtxt4 = resultp('td')[4]
-        resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
-        resiss = resultIssues[n].find('issue')
-        resiss = int(resiss)
-        resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
-        resultIssues[n] = resultIssues[n].replace(' ', '')
+        tds = resultp('td')
+        if len(tds) > 4:
+            subtxt3 = tds[3]
+            resultYear.append(subtxt3.findNext(text=True))
+            resultYear[n] = resultYear[n].replace(' ', '')
+            subtxt4 = tds[4]
+            resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
+            resiss = resultIssues[n].find('issue')
+            resiss = int(resiss)
+            resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
+            resultIssues[n] = resultIssues[n].replace(' ', '')
+        else:
+            logger.fdebug(f"[GCD] Row {n} missing expected data columns. Skipping.")
+            n += 1
+            cnt -= 1
+            continue
         #print ( "Year: " + str(resultYear[n]) )
         #print ( "Issues: " + str(resultIssues[n]) )
         CleanComicName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
@@ -117,8 +131,12 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
                         #print ("complete match!...proceeding")
                     TotalIssues = resultIssues[n]
                     resultURL = str(resultID[n])
-                    rptxt = resultp('td')[6]
-                    resultPublished = rptxt.findNext(text=True)
+                    tds = resultp('td')
+                    if len(tds) > 6:
+                        rptxt = tds[6]
+                        resultPublished = rptxt.findNext(text=True)
+                    else:
+                        resultPublished = "Unknown"
                     #print ("Series Published: " + str(resultPublished))
                     break
 
@@ -233,11 +251,11 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 if 'limited series' in resultFormat.lower() and '?' in resultPublished:
                     resultPublished = resultPublished + " (Limited Series)"
             coverst = soup.find("div", {"id": "series_cover"})
-            if coverst < 0:
-                gcdcover = "None"
-            else:
+            if coverst and len(coverst('img', src=True)) > 0:
                 subcoverst = coverst('img', src=True)[0]
                 gcdcover = subcoverst['src']
+            else:
+                gcdcover = "None"
 
         #print ("resultURL:" + str(resultURL))
         #print ("comicID:" + str(ComicID))
@@ -280,11 +298,20 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 ntype = "even"
                 parsed = soup.findAll("tr", {"class": "row_even_True"})[n_even]
             subtxt3 = parsed.find("a")
-            ParseIssue = subtxt3.findNext(text=True)
+            if subtxt3:
+                ParseIssue = subtxt3.findNext(text=True)
+            else:
+                ParseIssue = "Unknown"
 
-            fid = parsed('a', href=True)[0]
-            resultGID = fid['href']
-            resultID = resultGID[7:-1]
+            links = parsed('a', href=True)
+            if len(links) > 0:
+                fid = links[0]
+                resultGID = fid['href']
+                resultID = resultGID[7:-1]
+            else:
+                n += 1
+                cnt -= 1
+                continue
 
             if ',' in ParseIssue: ParseIssue = re.sub(r"\,", "", ParseIssue)
             variant="no"
@@ -497,32 +524,46 @@ def GCDAdd(gcdcomicid):
         logger.fdebug("SeriesName section...")
         parsen = soup.find("span", {"id": "series_name"})
         #logger.fdebug("series name (UNPARSED): " + str(parsen))
-        subpar = parsen('a')[0]
-        resultName = subpar.findNext(text=True)
+        if parsen and len(parsen('a')) > 0:
+            subpar = parsen('a')[0]
+            resultName = subpar.findNext(text=True)
+        else:
+            resultName = "Unknown"
         logger.fdebug("ComicName: " + str(resultName))
         #covers-start
         logger.fdebug("Covers section...")
         coverst = soup.find("div", {"id": "series_cover"})
-        if coverst < 0:
-            gcdcover = "None"
-            logger.fdebug("unable to find any covers - setting to None")
-        else:
+        if coverst and len(coverst('img', src=True)) > 0:
             subcoverst = coverst('img', src=True)[0]
             #logger.fdebug("cover (UNPARSED) : " + str(subcoverst))
             gcdcover = subcoverst['src']
+        else:
+            gcdcover = "None"
+            logger.fdebug("unable to find any covers - setting to None")
         logger.fdebug("Cover: " + str(gcdcover))
         #covers end
         #publisher start
         logger.fdebug("Publisher section...")
         try:
             pubst = soup.find("div", {"class": "item_data"})
-            catchit = pubst('a')[0]
+            links = pubst('a')
+            if len(links) > 0:
+                catchit = links[0]
+            else:
+                raise IndexError
+ 
+        except (IndexError, TypeError, AttributeError):
+            rows = soup.findAll("div", {"class": "left"})
+            if len(rows) > 1:
+                pubst = rows[1]
+                catchit = pubst.find("a")
+            else:
+                catchit = None
 
-        except (IndexError, TypeError):
-            pubst = soup.findAll("div", {"class": "left"})[1]
-            catchit = pubst.find("a")
-
-        publisher = catchit.findNext(text=True)
+        if catchit:
+            publisher = catchit.findNext(text=True)
+        else:
+            publisher = "Unknown"
         logger.fdebug("Publisher: " + str(publisher))
         #publisher end
         parsed = soup.find("div", {"id": "series_data"})
@@ -649,32 +690,51 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
             else:
                 n_odd+=1
                 resultp = soup.findAll("tr", {"class": "listing_odd"})[n_odd]
-            rtp = resultp('a')[1]
-            rtpit = rtp.findNext(text=True)
-            rtpthis = rtpit.encode('utf-8').strip()
-            resultName.append(helpers.cleanName(rtpthis))
-#            print ( "Comic Name: " + str(resultName[n]) )
-
-            pub = resultp('a')[0]
-            pubit = pub.findNext(text=True)
-#            pubthis = u' '.join(pubit).encode('utf-8').strip()
-            pubthis = pubit.encode('utf-8').strip()
-            resultPublisher.append(pubthis)
-#            print ( "Publisher: " + str(resultPublisher[n]) )
-
-            fip = resultp('a', href=True)[1]
-            resultID.append(fip['href'])
-#            print ( "ID: " + str(resultID[n]) )
-
-            subtxt3 = resultp('td')[3]
-            resultYear.append(subtxt3.findNext(text=True))
-            resultYear[n] = resultYear[n].replace(' ', '')
-            subtxt4 = resultp('td')[4]
-            resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
-            resiss = resultIssues[n].find('issue')
-            resiss = int(resiss)
-            resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
-            resultIssues[n] = resultIssues[n].replace(' ', '')
+            links = resultp('a')
+            if len(links) > 1:
+                rtp = links[1]
+                rtpit = rtp.findNext(text=True)
+                rtpthis = rtpit.encode('utf-8').strip()
+                resultName.append(helpers.cleanName(rtpthis))
+    #            print ( "Comic Name: " + str(resultName[n]) )
+ 
+                pub = links[0]
+                pubit = pub.findNext(text=True)
+    #            pubthis = u' '.join(pubit).encode('utf-8').strip()
+                pubthis = pubit.encode('utf-8').strip()
+                resultPublisher.append(pubthis)
+    #            print ( "Publisher: " + str(resultPublisher[n]) )
+ 
+                fips = resultp('a', href=True)
+                if len(fips) > 1:
+                    fip = fips[1]
+                    resultID.append(fip['href'])
+                else:
+                    n += 1
+                    cnt -= 1
+                    continue
+            else:
+                logger.fdebug(f"[GCD] ComChk row {n} missing links. Skipping.")
+                n += 1
+                cnt -= 1
+                continue
+ 
+            tds = resultp('td')
+            if len(tds) > 4:
+                subtxt3 = tds[3]
+                resultYear.append(subtxt3.findNext(text=True))
+                resultYear[n] = resultYear[n].replace(' ', '')
+                subtxt4 = tds[4]
+                resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
+                resiss = resultIssues[n].find('issue')
+                resiss = int(resiss)
+                resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
+                resultIssues[n] = resultIssues[n].replace(' ', '')
+            else:
+                logger.fdebug(f"[GCD] ComChk row {n} missing columns. Skipping.")
+                n += 1
+                cnt -= 1
+                continue
 #            print ( "Year: " + str(resultYear[n]) )
 #            print ( "Issues: " + str(resultIssues[n]) )
 #            print ("comchkchoice: " + str(comchkchoice))
@@ -744,45 +804,68 @@ def annualCheck(gcomicid, comicid, comicname, comicyear):
         else:
             n_odd+=1
             resultp = soup.findAll("tr", {"class": "listing_odd"})[n_odd]
-        rtp = resultp('a')[1]
-        rtp1 = re.sub('Annual', '', rtp)
-        resultName.append(helpers.cleanName(rtp1.findNext(text=True)))
-        print(("Comic Name: " + str(resultName[n])))
-        fip = resultp('a', href=True)[1]
-        resultID.append(fip['href'])
-        print(("ID: " + str(resultID[n])))
+        links = resultp('a')
+        if len(links) > 1:
+            rtp = links[1]
+            rtp1 = re.sub('Annual', '', str(rtp))
+            resultName.append(helpers.cleanName(BeautifulSoup(rtp1).findNext(text=True)))
+            print(("Comic Name: " + str(resultName[n])))
+            fips = resultp('a', href=True)
+            if len(fips) > 1:
+                fip = fips[1]
+                resultID.append(fip['href'])
+                print(("ID: " + str(resultID[n])))
+            else:
+                n += 1
+                cnt -= 1
+                continue
+        else:
+            n += 1
+            cnt -= 1
+            continue
 
-        subtxt3 = resultp('td')[3]
-        resultYear.append(subtxt3.findNext(text=True))
-        resultYear[n] = resultYear[n].replace(' ', '')
+        tds = resultp('td')
+        if len(tds) > 4:
+            subtxt3 = tds[3]
+            resultYear.append(subtxt3.findNext(text=True))
+            resultYear[n] = resultYear[n].replace(' ', '')
 
-        subtxt4 = resultp('td')[4]
-        resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
-        resiss = resultIssues[n].find('issue')
-        resiss = int(resiss)
-        resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
-        resultIssues[n] = resultIssues[n].replace(' ', '')
-        print(("Year: " + str(resultYear[n])))
-        print(("Issues: " + str(resultIssues[n])))
+            subtxt4 = tds[4]
+            resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
+            resiss = resultIssues[n].find('issue')
+            resiss = int(resiss)
+            resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
+            resultIssues[n] = resultIssues[n].replace(' ', '')
+            print(("Year: " + str(resultYear[n])))
+            print(("Issues: " + str(resultIssues[n])))
+        else:
+            n += 1
+            cnt -= 1
+            continue
+
         CleanComicName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
 
         CleanComicName = re.sub(' ', '', CleanComicName).lower()
-        CleanResultName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
-        CleanResultName = re.sub(' ', '', CleanResultName).lower()
-        print(("CleanComicName: " + str(CleanComicName)))
-        print(("CleanResultName: " + str(CleanResultName)))
-        if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName:
-        #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower():
-            #print ("n:" + str(n) + "...matched by name to Mylar!")
-            if resultYear[n] == ComicYear or resultYear[n] == str(int(ComicYear) +1):
-                print(("n:" + str(n) + "...matched by year to Mylar!"))
-                print(("Year: " + str(resultYear[n])))
-                TotalIssues = resultIssues[n]
-                resultURL = str(resultID[n])
-                rptxt = resultp('td')[6]
-                resultPublished = rptxt.findNext(text=True)
-                #print ("Series Published: " + str(resultPublished))
-                break
+        if len(resultName) > n:
+            CleanResultName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
+            CleanResultName = re.sub(' ', '', CleanResultName).lower()
+            print(("CleanComicName: " + str(CleanComicName)))
+            print(("CleanResultName: " + str(CleanResultName)))
+            if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName:
+            #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower():
+                #print ("n:" + str(n) + "...matched by name to Mylar!")
+                if resultYear[n] == comicyear or resultYear[n] == str(int(comicyear) +1):
+                    print(("n:" + str(n) + "...matched by year to Mylar!"))
+                    print(("Year: " + str(resultYear[n])))
+                    TotalIssues = resultIssues[n]
+                    resultURL = str(resultID[n])
+                    if len(tds) > 6:
+                        rptxt = tds[6]
+                        resultPublished = rptxt.findNext(text=True)
+                    else:
+                        resultPublished = "Unknown"
+                    #print ("Series Published: " + str(resultPublished))
+                    break
 
         n+=1
     return

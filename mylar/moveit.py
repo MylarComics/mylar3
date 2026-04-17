@@ -34,6 +34,9 @@ def movefiles(comicid, comlocation, imported):
             if mylar.CONFIG.IMP_RENAME and mylar.CONFIG.FILE_FORMAT != '':
                 logger.fdebug("Renaming files according to configuration details : " + str(mylar.CONFIG.FILE_FORMAT))
                 renameit = helpers.rename_param(comicid, imported['ComicName'], impr['issuenumber'], orig_filename)
+                if renameit is None:
+                    logger.error("Snag encountered when renaming %s - skipping this file." % orig_filename)
+                    continue
                 nfilename = renameit['nfilename']
                 dstimp = os.path.join(comlocation, nfilename)
             else:
