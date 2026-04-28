@@ -1,4 +1,5 @@
 mylar.db
+.mylar_maintenance.db
 config.ini
 *.py[co]
 .idea
