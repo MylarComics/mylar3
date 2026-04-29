@@ -52,6 +52,8 @@ class carePackage(object):
                             ('PUSHBULLET', 'pushbullet_apikey'),
                             ('NMA', 'nma_apikey'),
                             ('TELEGRAM', 'telegram_token'),
+                            ('SLACK', 'slack_webhook_url'),
+                            ('MATTERMOST', 'mattermost_webhook_url'),
                             ('GOTIFY', 'gotify_token'),
                             ('CV', 'comicvine_api'),
                             ('Seedbox', 'seedbox_user'),
