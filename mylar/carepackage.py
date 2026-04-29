@@ -64,6 +64,8 @@ class carePackage(object):
                             ('AutoSnatch', 'pp_sshport'),
                             ('Email', 'email_password'),
                             ('Email', 'email_user'),
+                            ('SLACK', 'slack_webhook_url'),
+                            ('MATTERMOST', 'mattermost_webhook_url'),
                             ('DISCORD', 'discord_webhook_url'),
                             ('DDL', 'external_username'),
                             ('DDL', 'external_apikey'),
