@@ -283,7 +283,7 @@ class SABnzbd(object):
                         break
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
-                    logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
+                    logger.fdebug('nzo_id: %s found while processing queue in a post-processing status: %s' % (hq['nzo_id'], hq['status']))
                     if hq['status'] in ['Queued', 'Moving', 'Extracting', 'QuickCheck', 'Repairing', 'Verifying'] and not roundtwo:
                         logger.fdebug('[%s(%s)] sleeping for %ss to allow the process to finish before trying again..' % (hq['status'], extract_counter, mylar.CONFIG.SAB_MOVING_DELAY))
                         time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
@@ -296,7 +296,7 @@ class SABnzbd(object):
                             if extract_counter < to_delay:
                                 extract_counter +=1
                                 return self.historycheck(nzbinfo, roundtwo=False, extract_counter=extract_counter)
-                        return self.historycheck(nzbinfo, roundtwo=True)
+                        return self.historycheck(nzbinfo, roundtwo=False)
                     else:
                         self.remove_history(hq['nzo_id'], hq['status'])
                         return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
@@ -317,8 +317,9 @@ class SABnzbd(object):
         return found
 
     def remove_history(self, nzo_id, status):
-        logger.info('[Sabnzbd Completed History Removal] Download is complete - removing item from history..')
         if all([status == 'Failed', mylar.CONFIG.SAB_REMOVE_FAILED]) or mylar.CONFIG.SAB_REMOVE_COMPLETED:
+            logger.info('[Sabnzbd Completed History Removal] Download checks are complete - removing item from history..')
+        
             hist_params = {'mode': 'history',
                            'name': 'delete',
                            'value': nzo_id,
