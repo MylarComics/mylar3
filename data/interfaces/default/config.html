@@ -581,6 +581,7 @@
                    <td>
 			<fieldset>
 				<legend>Torrents</legend>
+                (Note that torrents are not a good source for automated downloads)
 				<div class="row checkbox">
 					<input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
 				</div>
@@ -833,14 +834,6 @@
                             <a href="#" style="float:right" type="button" onclick="doAjaxCall('force_rss',$(this))" data-success="RSS Force now running" data-error="Error trying to retrieve RSS Feeds"><span class="ui-icon ui-icon-extlink"></span>Force RSS</a>
                             </br><small>last run: ${config['rss_last']}</small>
                           </div>
-                        </fieldset>
-                        <fieldset>
-                                <div class="row checkbox left clearfix">
-                                   <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['experimental']} /><legend>Use Experimental Search</legend>
-                                </div>
-                                <div>
-                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Note: this is an experimental search - results may be better/worse.</small>
-                                </div>
                         </fieldset>
                         <fieldset>
                                 <div class="row checkbox left clearfix">
@@ -3600,8 +3593,8 @@ $("#enable_airdcpp").click(function(){
                 initConfigCheckbox("#enable_torrent_search");
                 initConfigCheckbox("#enable_32p");
                 initConfigCheckbox("#enable_rss");
-		initConfigCheckbox("#useexperimental");
-		initConfigCheckbox("#useraw");
+		
+                initConfigCheckbox("#useraw");
                 initConfigCheckbox("#replace_spaces");
                 initConfigCheckbox("#use_minsize");
                 initConfigCheckbox("#use_maxsize");
