@@ -44,7 +44,7 @@ if 'windows' not in platform.system().lower():
 
 class FileChecker(object):
 
-    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None, pp_mode=False):
+    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None, pp_mode=False, comic_type=None, single_issue_series=False, single_issue_number=None):
         #dir = full path to the series Comic Location (manual pp will just be psssing the already parsed filename)
         if dir:
             self.dir = dir
@@ -110,6 +110,19 @@ class FileChecker(object):
         self.dynamic_handlers = ['/','-',':',';','\'','"',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
+
+        # Type-bypass: when a One-Shot/GN/TPB/HC series has Mylar Total=1
+        # and the folder has exactly one non-marker file, parseit forces
+        # issue_number to the issue # Mylar got from CV (not always '1' —
+        # CV sometimes assigns random numbers like 220 to a single-issue
+        # series). Fixes the numeric-title-in-filename trap (e.g. "7174
+        # Annual (2022).cbr" being parsed as issue #7174). Marker files
+        # (primer/ashcan/preview/sneak peek not in the series name) stay
+        # orphaned in the same folder; only the main file gets matched.
+        # See: scripts/mylar_type_bypass_patch.py for re-apply on update.
+        self.comic_type = comic_type
+        self.single_issue_series = bool(single_issue_series)
+        self.single_issue_number = single_issue_number
 
         #pre-generate the AS_Alternates now
         AS_Alternates = self.altcheck()
@@ -1319,6 +1332,68 @@ class FileChecker(object):
                     issue_number = isn
                 series_name = re.sub('special', '', series_name, flags=re.I).strip()
                 series_name_decoded = re.sub('special', '', series_name_decoded, flags=re.I).strip()
+
+        # ---- Type-bypass v1.1 for single-volume publications -------------
+        # Fixes Mylar's filename parser when the title contains digits that
+        # aren't the issue number — e.g. "7174 Annual (2022).cbr" (parser
+        # grabs 7174 as issue#), "Cyberpunk 2077 (2021)" (grabs 2077),
+        # "1001 Reasons (2024)" (grabs 1001). For single-volume Types
+        # (One-Shot/GN/TPB/HC) we skip the parser's number extraction and
+        # use Mylar's actual CV-assigned issue # (could be 1, 0, 220, etc.).
+        try:
+            _ct = getattr(self, 'comic_type', None)
+            _sis = getattr(self, 'single_issue_series', False)
+            _sin = getattr(self, 'single_issue_number', None)
+            if (_ct in ('One-Shot', 'GN', 'Graphic Novel', 'TPB', 'HC')
+                    and _sis and _sin is not None):
+                _folder = self.dir if self.dir and os.path.isdir(self.dir) else None
+                if _folder:
+                    _ft = ('.cbr', '.cbz', '.cb7', '.pdf')
+                    _all = [_f for _f in os.listdir(_folder)
+                            if _f.lower().endswith(_ft)]
+                    _markers = ('primer', 'ashcan', 'preview', 'sneak peek')
+                    _watch_low = (self.watchcomic or '').lower()
+                    def _is_marker(_fn):
+                        _fl = _fn.lower()
+                        return any(_m in _fl and _m not in _watch_low
+                                   for _m in _markers)
+                    _non_marker = [_f for _f in _all if not _is_marker(_f)]
+                    if len(_non_marker) == 1 and filename == _non_marker[0]:
+                        if str(issue_number) != str(_sin):
+                            logger.fdebug(
+                                '[TYPE-BYPASS] Type=%s + Mylar Total=1 + '
+                                'single non-marker file (%d of %d in folder). '
+                                'Overriding parsed issue_number %r -> %r '
+                                '(using Mylar/CV-assigned single issue#)' %
+                                (_ct, 1, len(_all), issue_number, _sin)
+                            )
+                        issue_number = _sin
+                        if booktype == 'issue':
+                            booktype = 'GN' if _ct == 'Graphic Novel' else _ct
+                        # v1.2 extension: also override series_name to match
+                        # the watchcomic. Our bypass already established the
+                        # file belongs to this series (we're in its folder,
+                        # it's the only non-marker file, single-volume Type,
+                        # Total=1). The parser may have eaten a trailing
+                        # year out of the title (e.g. "Hellboy Winter Special
+                        # 2018" → "Hellboy Winter Special" because filename
+                        # also has "(2018)" year-paren), which causes matchIT
+                        # to reject. Bypassing series_name = watchcomic skips
+                        # that mismatch and lets the match succeed.
+                        if self.watchcomic and series_name != self.watchcomic:
+                            logger.fdebug(
+                                '[TYPE-BYPASS] series_name override: %r -> %r '
+                                '(watchcomic; parser may have eaten trailing year)' %
+                                (series_name, self.watchcomic)
+                            )
+                            series_name = self.watchcomic
+                            try:
+                                series_name_decoded = self.watchcomic
+                            except Exception:
+                                pass
+        except Exception as _e:
+            logger.fdebug('[TYPE-BYPASS] check failed: %s' % _e)
+        # ------------------------------------------------------------------
 
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
             bythepass = False
