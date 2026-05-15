@@ -74,7 +74,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         current_weeknumber = weekly_info['weeknumber']
         current_year = weekly_info['year']
         for x in [1, 2]:
-            # for now we'll query WS twice - once for the previous week & once for the current week
+            # for now we'll query TH twice - once for the previous week & once for the current week
             # but only when requesting data for the current week. This is done in order to make sure that
             # the previous weeks info is complete, as CV has started updating certain publishers after the
             # week roll-over which leaves some stragglers if the updater doesn't catch it (which it mostly should).
@@ -1005,7 +1005,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
         kc = []
         otot = 0
         if not comic1off_id:
-            logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
+            logger.fdebug("[TALKHARD] You are watching for: " + str(len(weeklylist)) + " comics")
 
         weekly = myDB.select('SELECT * from(SELECT a.comicid,IFNULL(a.Comic, b.ComicName) as ComicName,NULL as SeriesYear,a.rowid,a.issue,a.issueid,NULL as ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN annuals as b ON b.releasecomicid = a.comicid WHERE weeknumber = ? AND year = ? UNION SELECT a.comicid,IFNULL(a.Comic, c.ComicName) as ComicName,c.ComicYear as SeriesYear,a.rowid,a.issue,a.issueid,c.ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN comics as c ON c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname OR a.annuallink = c.comicid WHERE weeknumber = ? AND year = ?  ) GROUP BY dynamicname', [int(weeknumber),pullyear,int(weeknumber),pullyear])
         if mylar.CONFIG.ANNUALS_ON is True:
@@ -1030,7 +1030,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             try:
                                 annual_link = int(annual_link)
                             except ValueError:
-                                logger.warn("[WEEKLY-PULL] %s #%s has an invalid annuallink value (%s): walksoftly data may be invalid; skipping", week['ComicName'], week['ISSUE'], week['annuallink'])
+                                logger.warn("[WEEKLY-PULL] %s #%s has an invalid annuallink value (%s): weekly data may be invalid; skipping", week['ComicName'], week['ISSUE'], week['annuallink'])
                                 continue
                         annualidmatch = [x for x in weeklylist if annual_link is not None and (int(x['ComicID']) == annual_link)]
 
@@ -1076,7 +1076,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                 logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                             else:
                                 if week['annuallink'] is not None:
-                                    comicid = week['annuallink']  # force the annual id via the pull since it should be correct on WS
+                                    comicid = week['annuallink']  # force the annual id via the pull since it should be correct on TH
                                     release_the_id = week['annualllink']
                                 else:
                                     comicid = week['comicid']

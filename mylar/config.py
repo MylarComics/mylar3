@@ -467,7 +467,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
     'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
-    'RELEASE_PROVIDER_URL' : (str, 'Release Provider', 'https://walksoftly.itsaninja.party'),
+    'RELEASE_PROVIDER_URL' : (str, 'Release Provider', 'https://talkhard.notaninja.party'),
 
 })
 
@@ -515,7 +515,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 18
+            self.newconfig = 19
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -923,12 +923,6 @@ class Config(object):
                     setattr(self, dcp_attr, self.OLD_VALUES[dcp_key])
                     config.set('DCPP', dcp_key, str(getattr(self, dcp_attr)))
 
-        if self.newconfig < 17:
-            logger.info('Making releases provider configurable')
-            config.add_section('Release Provider')
-            self.RELEASE_PROVIDER_URL = 'https://walksoftly.itsaninja.party'
-            config.set('Release Provider', 'release_provider_url', self.RELEASE_PROVIDER_URL)
-
         if self.CONFIG_VERSION < 18:
             if self.GIT_USER is not None and self.GIT_USER == 'mylar3':
                 config.set('Git', 'GIT_USER', 'MylarComics')
@@ -938,6 +932,12 @@ class Config(object):
 
             if self.GIT_BRANCH is not None and self.GIT_BRANCH in ['python3-dev', '1000papercuts']:
                 config.set('Git', 'GIT_BRANCH', 'nightly')
+
+        if self.CONFIG_VERSION < 19:
+            logger.info('Ensuring release provider is set to TalkHard')
+            self.RELEASE_PROVIDER_URL = 'https://talkhard.notaninja.party'
+            config.set('Release Provider', 'release_provider_url', self.RELEASE_PROVIDER_URL)
+
              
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
