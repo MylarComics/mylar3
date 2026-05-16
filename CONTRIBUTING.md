@@ -8,6 +8,7 @@
 - Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to format your commit messages - applications like [commitizen](https://commitizen-tools.github.io/commitizen/) can help you get in that habit.
 - Try to keep it to one feature/bug fix per pull request to keep things clean and easy to understand.
 - Ensure that you've enabled a docker image to be built on your own branch using our GitHub Actions workflows.
+- Test your changes on a real Mylar instance on real data.
 - Rebase before submitting PRs.  If the nightly branch has moved on since you started writing, don't expect reviewers to handle merging your code in case it conflicts.
 
 ## AI Contribution Policy
@@ -19,10 +20,10 @@ Our AI contribution policy is based on three core principles.
 
 **UNDERSTANDING**: This is leaving the greatest until last.  We expect you to fully understand what you are submitting, and be able to explain the changes in your own words.  You must be leading the AI, not letting the AI lead you.  This includes understanding **why** the changes are being made.
 
-### Guidelines
-AI, in some measure, is likely to form a part of the workflow of most developers at this point.  We appreciate and understand this, but we still believe change needs to be driven by developers themselves, not by the AI.  It is there to act as an aid, and a labour saving device.
+## Guidelines
+AI, in some measure, is likely to form a part of the workflow of most developers at this point.  We appreciate and understand this, but we still believe change needs to be driven by developers themselves, not by the AI.  It is there to act as an aid, and a labour saving device.  These guidelines apply whether using AI to code or writing code by hand.
 
-Ensure that you have read and understood every line of code that you are submitting, as well as the context of those lines of code.  Make sure that you have tested, not just for the scenario you are implementing, but also other scenarios that share that part of the codebase.  Don't test your code in isolation - it is expected that you have tested against real data in a running instance of Mylar.
+Ensure that you have read and understood every line of code that you are submitting, as well as the context of those lines of code.  Make sure that you have tested, not just for the scenario you are implementing, but also other scenarios that share that part of the codebase.  Don't test your code in isolation - it is expected that you have tested against real data in a running instance of Mylar.  Consider the impact of different platforms and python versions when testing.
 
 Do not write your PRs using AI.  If you can't succinctly explain what you are changing, what problems you are solving, how you've tested, etc. then you are not the driver of change.  Nobody wants to read 5 pages of grandiose corporate waffle.
 
