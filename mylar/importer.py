@@ -18,6 +18,7 @@
 import time
 import os, errno
 import sys
+import traceback
 import shlex
 import datetime
 import re
@@ -65,10 +66,15 @@ def addvialist(seriesQueue, issueWantQueue):
                 logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (seriesQueue.qsize()+1, item['comicid']))
                 mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
 
-            if 'suppress_addall' in item.keys():
-                addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
-            else:
-                addComictoDB(item['comicid'])
+            try:
+                if 'suppress_addall' in item.keys():
+                    addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
+                else:
+                    addComictoDB(item['comicid'])
+            except Exception as e:
+                logger.error(f"[MASS-ADD] Fatal error encountered during import of {item.get('comicname', item['comicid'])}: {e}")
+                logger.error(traceback.format_exc())
+                continue
         elif issueWantQueue.qsize() > 0:
             time.sleep(1)
             issueItem = issueWantQueue.get(True)
@@ -165,9 +171,12 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
         if all([imported is not None, imported != 'None', mylar.CONFIG.IMP_PATHS is True]):
-            try:
-                comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
-            except Exception as e:
+            # Verify filelisting is present and has at least one entry
+            file_list = imported.get('filelisting')
+            if file_list and len(file_list) > 0:
+                comlocation = os.path.dirname(file_list[0].get('comiclocation'))
+            else:
+                logger.fdebug("[IMPORT] No file listing found in 'imported' data. comlocation remains None.")
                 comlocation = None
         else:
             comlocation = None
@@ -250,7 +259,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 resultURL = "/series/" + str(NewComicID) + "/"
                 #print ("variloop" + str(CV_EXcomicid['variloop']))
                 #if vari_loop == '99':
-                gcdinfo = parseit.GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=comicid, TotalIssues=0, issvariation="no", resultPublished=None)
+                try:
+                    gcdinfo = parseit.GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=comicid, TotalIssues=0, issvariation="no", resultPublished=None)
+                except Exception as e:
+                    logger.warn(f"GCD details scraper failed to parse data for {comic['ComicName']}: {e}")
+                    gcdinfo = "No Match"
 
     # print ("Series Published" + parseit.resultPublished)
 
@@ -776,14 +789,21 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
     controlValueDict = {"ComicID":     gcdcomicid}
 
-    comic = myDB.selectone('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation, ComicPublisher FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
-    ComicName = comic[0]
-    ComicYear = comic[1]
-    ComicIssues = comic[2]
-    ComicPublished = comic[3]
-    comlocation = comic[5]
-    ComicPublisher = comic[6]
-    #ComicImage = comic[4]
+    comic_row = myDB.selectone('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation, ComicPublisher FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
+    
+    if not comic_row:
+        logger.warn(f"Error fetching comic from DB: {gcdcomicid}")
+        newValueDict = {"ComicName": f"Fetch failed, entry missing from DB. ({gcdcomicid})", "Status": "Active"}
+        myDB.upsert("comics", newValueDict, controlValueDict)
+        return
+
+    ComicName = comic_row[0]
+    ComicYear = comic_row[1]
+    ComicIssues = comic_row[2]
+    ComicPublished = comic_row[3]
+    comlocation = comic_row[5]
+    ComicPublisher = comic_row[6]
+    #ComicImage = comic_row[4]
     #print ("Comic:" + str(ComicName))
 
     newValueDict = {"Status":   "Loading"}
