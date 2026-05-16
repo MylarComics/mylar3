@@ -68,7 +68,9 @@ class carePackage(object):
                             ('DDL', 'external_username'),
                             ('DDL', 'external_apikey'),
                             ('DCPP', 'airdcpp_username'),
-                            ('DCPP', 'airdcpp_password')
+                            ('DCPP', 'airdcpp_password'),
+                            ('SLACK', 'slack_webhook_url'),
+                            ('MATTERMOST', 'mattermost_webhook_url')
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),
