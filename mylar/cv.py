@@ -397,15 +397,15 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
         comic['Type'] = givb['Type']
         comic['incorrect_volume'] = givb['incorrect_volume']
 
-    try:
-        comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText
-    except:
-        #this should never be an exception. If it is, it's probably due to CV timing out - so let's sleep for abit then retry.
-        logger.warn('Unable to retrieve URL for volume. This is usually due to a timeout to CV, or going over the API. Retrying again in 10s.')
-        time.sleep(10)
-        safechk +=1
-        GetComicInfo(comicid, dom, safechk)
-
+    # DOM is not a great choice here for navigating XML.  This could all be done wiht ElementTree and then exact xpath navigation
+    # This was originally causing problems with site_detail_url if the xml isn't in the expected order as it was assuming a position
+    # the returned set of elements
+    found_url_element = [element for element in dom.getElementsByTagName('site_detail_url') if element.parentNode.nodeName == 'results']
+    if not found_url_element:
+        logger.warn('ComicVine response did not have a site_detail_url element - constructing one based on ID')
+        comic['ComicURL'] = f'https://comicvine.gamespot.com/volume/4050-{comicid}'
+    else:
+        comic['ComicURL'] = found_url_element[0].firstChild.wholeText
 
     try:
         comic['Aliases'] = dom.getElementsByTagName('aliases')[0].firstChild.wholeText
