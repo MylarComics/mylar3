@@ -24,6 +24,7 @@ from mylar.helpers import ignored_publisher_check
 def locg(pulldate=None,weeknumber=None,year=None):
 
         todaydate = datetime.datetime.today().replace(second=0,microsecond=0)
+        # TODO: pulldate appears to be another legacy code branch, but if needed should be burned and replaced with the common weekly_info call
         if pulldate:
             logger.info('pulldate is : ' + str(pulldate))
             if pulldate is None or pulldate == '00000000':
@@ -38,7 +39,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
                     weeknumber = weeknumber_new
 
         else:
-            if str(weeknumber).isdigit() and int(weeknumber) <= 52:
+            if str(weeknumber).isdigit() and int(weeknumber) <= 53:
                 #already requesting week #
                 weeknumber = weeknumber
             else:
