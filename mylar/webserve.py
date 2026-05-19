@@ -2378,6 +2378,7 @@ class WebInterface(object):
                     logger.fdebug("Marking " + str(IssueID) + " as Skipped")
                 elif action == 'Clear':
                     myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
+                    continue
                 elif action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                     logger.fdebug('Marking [' + comicname + '] : ' + str(IssueID) + ' as Failed. Sending to failed download handler.')
                     failedcomicid = mi['ComicID']
