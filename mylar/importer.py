@@ -1834,6 +1834,14 @@ def importer_thread(serieslist):
     if type(serieslist) != list:
         serieslist  = [(serieslist)]
 
+    # A very basic preclean check to avoid duplication.  In an ideal world we'd be more disciplined about adding in the first place, and
+    # also perform this check properly by ID, but this will solve some problems caused upstream
+    filtered_list = [entry for entry in serieslist if entry not in mylar.ADD_LIST.queue]
+    filtered_count = len(serieslist) - len(filtered_list)
+    if filtered_count > 0:
+        logger.info(f'[MASS-ADD] Ignoring request to add {filtered_count} series already in queue')
+        serieslist = filtered_list
+
     threaded_call = True
 
     list(map(mylar.ADD_LIST.put, serieslist))
