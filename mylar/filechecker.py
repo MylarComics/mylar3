@@ -1340,6 +1340,19 @@ class FileChecker(object):
         # "1001 Reasons (2024)" (grabs 1001). For single-volume Types
         # (One-Shot/GN/TPB/HC) we skip the parser's number extraction and
         # use Mylar's actual CV-assigned issue # (could be 1, 0, 220, etc.).
+        #
+        # Bypass fires when ALL of:
+        #   - comic_type is single-volume
+        #   - single_issue_series is True (Mylar Total == 1)
+        #   - single_issue_number was passed (caller looked it up in mylar.db)
+        #   - folder has exactly ONE non-marker comic file
+        #   - this parse pass is on that non-marker file
+        # A "marker" file has primer/ashcan/preview/sneak peek in its name
+        # AND that word is NOT in the series name (so series named "Primer"
+        # or "The [TR]Ashcan" aren't treated as markers). Marker files in
+        # the same folder stay orphaned (correct — Mylar has no issue # for
+        # them; CV doesn't track most ashcans/primers as separate issues).
+        # NOT included as markers: 'annual', 'holiday special' (too unreliable).
         try:
             _ct = getattr(self, 'comic_type', None)
             _sis = getattr(self, 'single_issue_series', False)
@@ -1370,27 +1383,101 @@ class FileChecker(object):
                         issue_number = _sin
                         if booktype == 'issue':
                             booktype = 'GN' if _ct == 'Graphic Novel' else _ct
-                        # v1.2 extension: also override series_name to match
-                        # the watchcomic. Our bypass already established the
-                        # file belongs to this series (we're in its folder,
-                        # it's the only non-marker file, single-volume Type,
-                        # Total=1). The parser may have eaten a trailing
-                        # year out of the title (e.g. "Hellboy Winter Special
-                        # 2018" → "Hellboy Winter Special" because filename
-                        # also has "(2018)" year-paren), which causes matchIT
-                        # to reject. Bypassing series_name = watchcomic skips
-                        # that mismatch and lets the match succeed.
+                        # v1.7 series_name override: filename significant
+                        # tokens must EQUAL the ordered tokens of EITHER
+                        # watchcomic OR any AltSearch entry (after paren
+                        # strip + issue#/year exclusion). Same words,
+                        # same sequence, no extras, no missing. AltSearch
+                        # is how the user declares "this alternate name
+                        # is also valid for this series" -- the bypass
+                        # respects that. Anything else REFUSE.
+                        # Stops are only true articles/prepositions.
                         if self.watchcomic and series_name != self.watchcomic:
-                            logger.fdebug(
-                                '[TYPE-BYPASS] series_name override: %r -> %r '
-                                '(watchcomic; parser may have eaten trailing year)' %
-                                (series_name, self.watchcomic)
-                            )
-                            series_name = self.watchcomic
-                            try:
-                                series_name_decoded = self.watchcomic
-                            except Exception:
-                                pass
+                            _stop = {
+                                'the', 'and', 'a', 'an', 'of', 'in', 'to',
+                                'for', 'on', 'at', 'by', 'with', 'or',
+                            }
+                            # Drop the override issue# from BOTH sides
+                            # so legit "Series 001 (Year)" filenames
+                            # don't trip on the extra issue tag. KEEP
+                            # year as an anchor -- "Avengers 1999" and
+                            # "Hellboy Winter Special 2018" have year
+                            # baked into the CV title and that's
+                            # load-bearing for distinguishing files.
+                            _drop_norms = set()
+                            for _d in (_sin, issue_number):
+                                if _d is None or _d == '':
+                                    continue
+                                _ds = str(_d)
+                                _drop_norms.add(_ds)
+                                if _ds.isdigit():
+                                    _drop_norms.add(_ds.lstrip('0') or '0')
+                            def _toks_ordered(_s):
+                                _s = re.sub(r'\([^)]*\)', '', _s or '')
+                                _s = _s.lower()
+                                _out = []
+                                for _t in re.findall(r"[a-z0-9'\-]+", _s):
+                                    if _t in _stop:
+                                        continue
+                                    if not (_t.isdigit() or len(_t) >= 2):
+                                        continue
+                                    _tn = _t.lstrip('0') if _t.isdigit() else _t
+                                    if _t in _drop_norms or _tn in _drop_norms:
+                                        continue
+                                    _out.append(_t)
+                                return _out
+                            _wc_list = _toks_ordered(self.watchcomic)
+                            _fn_base = os.path.splitext(filename)[0]
+                            _fn_list = _toks_ordered(_fn_base)
+                            # Build the list of acceptable target names:
+                            # watchcomic + each AltSearch entry. AltSearch
+                            # is stored as "Name1!!ID1##Name2!!ID2..." or
+                            # plain. Strip !!ID suffixes and split on ##.
+                            _candidates = [('watchcomic', self.watchcomic,
+                                            _wc_list)]
+                            _alt_raw = getattr(self, 'AlternateSearch', None)
+                            if _alt_raw and _alt_raw.lower() != 'none':
+                                for _entry in _alt_raw.split('##'):
+                                    _name = _entry.split('!!')[0].strip()
+                                    if not _name:
+                                        continue
+                                    _candidates.append(
+                                        ('altsearch', _name,
+                                         _toks_ordered(_name))
+                                    )
+                            _matched = None
+                            for _src, _name, _toks in _candidates:
+                                if _fn_list and _fn_list == _toks:
+                                    _matched = (_src, _name, _toks)
+                                    break
+                            if _matched:
+                                logger.fdebug(
+                                    '[TYPE-BYPASS] series_name override: %r -> '
+                                    '%r via %s (filename ordered tokens %r '
+                                    '== %s ordered tokens %r)' %
+                                    (series_name, _matched[1], _matched[0],
+                                     _fn_list, _matched[0], _matched[2])
+                                )
+                                series_name = _matched[1]
+                                try:
+                                    series_name_decoded = _matched[1]
+                                except Exception:
+                                    pass
+                            else:
+                                _extras = set(_fn_list) - set(_wc_list)
+                                _missing = set(_wc_list) - set(_fn_list)
+                                logger.fdebug(
+                                    '[TYPE-BYPASS] series_name override '
+                                    'REFUSED: filename %r tokens=%r did not '
+                                    'match watchcomic %r tokens=%r nor any '
+                                    'AltSearch entry %r. (extras vs wc=%r, '
+                                    'missing vs wc=%r). Add an AltSearch '
+                                    'whose tokens match the filename.' %
+                                    (filename, _fn_list, self.watchcomic,
+                                     _wc_list,
+                                     [c[1] for c in _candidates[1:]],
+                                     _extras, _missing)
+                                )
         except Exception as _e:
             logger.fdebug('[TYPE-BYPASS] check failed: %s' % _e)
         # ------------------------------------------------------------------
