@@ -5409,13 +5409,11 @@ class WebInterface(object):
                             WHERE c.comicid=? AND i.issueid=?",
                         [arc['ComicID'], arc['IssueID']]
                     )
-                for comic_by_id in comics_by_id:
-                    logger.fdebug('issue #: %s is present!' % arc['IssueNumber'])
-                    logger.fdebug('Comicname: %s' % arc['ComicName'])
-                    logger.fdebug('ComicID: %s [IssueID: %s]' % (comic_by_id['comicid'], comic_by_id['issueid']))
-                    logger.fdebug('Issue: %s' % arc['IssueNumber'])
-                    logger.fdebug('IssueArcID: %s' % arc['IssueArcID'])
-                    #gather the matches now.
+                if comics_by_id:
+                    if len(comics_by_id) > 1:
+                        # If we find more than one issue, log a warning but continue, using the first result
+                        logger.warn("found more than one copy of issue %s, likely because it is added both via annual integration and independently" % (arc['IssueID']))
+                    comic_by_id = comics_by_id[0]
                     arc_match.append({
                         "match_storyarc":          arc['StoryArc'],
                         "match_annual":            comic_by_id['match_annual'],
@@ -5428,10 +5426,7 @@ class WebInterface(object):
                         "match_readingorder":      arc['ReadingOrder'],
                         "match_filedirectory":     comic_by_id['comiclocation'],   #series directory path
                         "destination_location":    dstloc})                  #path to given storyarc / grab-bag directory
-                    matcheroso = "yes"
-                    break
-                if matcheroso == "yes":
-                    # if there are any results by id, we have a mactch and can continue to the next issue
+                    # Since we found the result by id, we can continue to the next issue
                     continue
 
                 # If we fail to find the comic by ID, fall back to looking by name
