@@ -19,6 +19,11 @@ import inspect
 import traceback
 import threading
 import platform
+import ctypes
+try:
+    import resource
+except ImportError:
+    resource = None
 import locale
 import mylar
 from mylar import helpers
@@ -353,3 +358,34 @@ else:
     message = logger.info
     exception = logger.exception
     fdebug = logger.debug
+
+
+def log_memory(context_msg="Memory Check"):
+    try:
+        alloc_mb = 0
+        if sys.platform == 'win32':
+            class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+                _fields_ = [("cb", ctypes.c_uint),
+                            ("PageFaultCount", ctypes.c_uint),
+                            ("PeakWorkingSetSize", ctypes.c_size_t),
+                            ("WorkingSetSize", ctypes.c_size_t),
+                            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                            ("PagefileUsage", ctypes.c_size_t),
+                            ("PeakPagefileUsage", ctypes.c_size_t)]
+            GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
+            GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
+            counters = PROCESS_MEMORY_COUNTERS()
+            GetProcessMemoryInfo(GetCurrentProcess(), ctypes.byref(counters), ctypes.sizeof(counters))
+            alloc_mb = counters.WorkingSetSize / (1024 * 1024)
+        elif resource:
+            alloc_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        
+        if alloc_mb > 0:
+            parent_logger = logging.getLogger('mylar')
+            parent_logger.info(f"[MEMORY] {context_msg}: process is using ~{alloc_mb:.2f} MB")
+    except Exception:
+        pass
+

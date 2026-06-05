@@ -11,18 +11,19 @@ This file tracks the current features, environment status, and pending/completed
 ## Current Status
 - **Main codebase**: Functional but runs on legacy patterns (CherryPy web server, custom scheduler, custom DB mappings).
 - **Recent changes**:
-  - Added new logger module [mylar_logger_new.py](file:///E:/Coding Projects/mylar3/mylar_logger_new.py) (saved in UTF-16LE encoding).
+  - Integrated `log_memory` function into [logger.py](file:///E:/Coding Projects/mylar3/mylar/logger.py) for tracking system memory footprint.
+  - Deleted temporary UTF-16LE `mylar_logger_new.py`.
 - **Test Status**:
-  - Out of 235 tests: 234 pass, 1 fails (`tests\test_queues.py::test_ddl_cleanup_keep_cache` due to a mockito mock expectation mismatch with Python 3.14 frozen `os` module).
+  - Out of 235 tests: 235 pass, 0 fails (mockito verification fix applied for python 3.14).
 
 ## Features Tracking
 - [x] CherryPy Web Server (Core GUI)
 - [x] Database migration & maintenance scripts
-- [x] Active logs & new logger module
+- [x] Active logs & integrated memory logger
 - [x] Test suite stability (fixed mockito `os` mock under Python 3.14)
 - [ ] Custom comic grabber features (to be designed/implemented)
 
 ## Next Steps
-1. Initialize local project rules and status configuration.
-2. Fix the failing test in `tests/test_queues.py`.
-3. Plan custom comic grabber features requested by the user.
+1. Gather requirements for the custom comic grabber functionality.
+2. Outline implementation plan for the custom features.
+
