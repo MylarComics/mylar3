@@ -1,0 +1,52 @@
+<div class="card" id="comic-card-{{ comic.comic_id }}">
+    <a href="/comics/{{ comic.comic_id }}">
+        <div class="card-img-wrapper">
+            <!-- Cached cover or default replacement cover -->
+            <img src="/cache/{{ comic.comic_id }}.jpg" 
+                 class="card-img" 
+                 alt="{{ comic.comic_name }}"
+                 onerror="this.onerror=null; this.src='https://placehold.co/300x420/131b2e/94a3b8?text=No+Cover';">
+        </div>
+    </a>
+    <div class="card-content">
+        <h3 class="card-title">
+            <a href="/comics/{{ comic.comic_id }}">{{ comic.comic_name }}</a>
+        </h3>
+        <div class="card-subtitle">{{ comic.publisher }}</div>
+        
+        <div class="card-meta">
+            <span>{{ comic.comic_year or "Unknown" }}</span>
+            <span class="badge {% if comic.status == 'Active' %}badge-active{% else %}badge-paused{% endif %}"
+                  id="status-badge-{{ comic.comic_id }}"
+                  hx-post="/api/comics/{{ comic.comic_id }}/toggle"
+                  hx-target="#status-badge-{{ comic.comic_id }}"
+                  hx-swap="outerHTML">
+                {{ comic.status }}
+            </span>
+        </div>
+        
+        <!-- Issue progress indicators -->
+        {% if comic.total_issues_count %}
+        <div class="card-meta" style="margin-top: 0.75rem; margin-bottom: 0.25rem;">
+            <span style="font-size: 0.75rem;">Progress</span>
+            <span style="font-size: 0.75rem; font-weight: 600;">{{ comic.downloaded_count }} / {{ comic.total_issues_count }}</span>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" style="width: {{ (comic.downloaded_count / comic.total_issues_count * 100)|int }}%;"></div>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-icon"
+                    hx-delete="/api/comics/{{ comic.comic_id }}"
+                    hx-confirm="Are you sure you want to delete {{ comic.comic_name }}?"
+                    hx-target="#comic-card-{{ comic.comic_id }}"
+                    hx-swap="outerHTML">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>

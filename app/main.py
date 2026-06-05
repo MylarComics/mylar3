@@ -1,8 +1,11 @@
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.db import init_db
 from app.core.logger import logger, log_memory
+from app.routers import web, api
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,6 +17,9 @@ async def lifespan(app: FastAPI):
         logger.info("PostgreSQL database tables initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing PostgreSQL tables: {e}")
+    
+    # Ensure cache directory exists
+    os.makedirs(settings.CACHE_DIR, exist_ok=True)
     
     yield
     
@@ -27,9 +33,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to Mylar3 modern hybrid backend!",
-        "docs_url": "/docs"
-    }
+# Mount Static and Cache folders
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/cache", StaticFiles(directory=settings.CACHE_DIR), name="cache")
+
+# Register Routers
+app.include_router(web.router)
+app.include_router(api.router)
+

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Watchlist - Mylar3{% endblock %}
+
+{% block content %}
+<!-- Interactive Search Header -->
+<div class="search-wrapper">
+    <input type="text" 
+           name="q" 
+           class="search-input" 
+           placeholder="Search and add a new comic series..." 
+           hx-get="/api/search-cv" 
+           hx-trigger="keyup changed delay:500ms" 
+           hx-target="#search-results"
+           hx-indicator="#search-indicator"
+           autocomplete="off">
+    <div style="position: absolute; right: 15px; top: 15px;">
+        <span id="search-indicator" class="htmx-indicator" style="color: var(--accent-cyan); font-size: 0.9rem; font-weight: 500;">
+            Searching...
+        </span>
+    </div>
+    <div id="search-results"></div>
+</div>
+
+<div class="section-title">
+    <h2>Your Watchlist</h2>
+    <span id="watchlist-count" style="font-size: 0.9rem; color: var(--text-secondary);">{{ comics|length }} Series tracked</span>
+</div>
+
+<!-- Watchlist Cards Grid -->
+<div class="grid" id="watchlist-grid">
+    {% for comic in comics %}
+        {% include "components/comic_card.html" %}
+    {% else %}
+    <div id="watchlist-empty" style="grid-column: 1/-1; text-align: center; padding: 4rem 1.5rem; background-color: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-secondary);">
+        <p style="font-size: 1.1rem; margin-bottom: 1rem;">No comics in your watchlist yet.</p>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Use the search bar above to find and add comics from ComicVine!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+<tr class="issue-tr" id="issue-row-{{ issue.issue_id }}">
+    <td class="issue-td issue-number">#{{ issue.issue_number }}</td>
+    <td class="issue-td">{{ issue.issue_name or "Unknown Name" }}</td>
+    <td class="issue-td">{{ issue.release_date or "Unknown" }}</td>
+    <td class="issue-td">
+        <span class="badge {% if issue.status == 'Wanted' %}badge-wanted{% elif issue.status == 'Snatched' %}badge-snatched{% elif issue.status == 'Downloaded' %}badge-downloaded{% else %}badge-skipped{% endif %}"
+              id="issue-badge-{{ issue.issue_id }}"
+              hx-post="/api/issues/{{ issue.issue_id }}/toggle"
+              hx-target="#issue-badge-{{ issue.issue_id }}"
+              hx-swap="outerHTML">
+            {{ issue.status }}
+        </span>
+    </td>
+    <td class="issue-td">
+        <!-- Manual search button -->
+        <button class="btn btn-secondary btn-icon"
+                style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"
+                hx-post="/api/issues/{{ issue.issue_id }}/search"
+                hx-target="#issue-row-{{ issue.issue_id }}"
+                hx-swap="outerHTML"
+                hx-indicator="#search-issue-indicator-{{ issue.issue_id }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span id="search-issue-indicator-{{ issue.issue_id }}" class="htmx-indicator" style="margin-left: 3px; font-size: 0.75rem; color: var(--accent-cyan);">...</span>
+        </button>
+    </td>
+</tr>

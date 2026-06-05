@@ -61,6 +61,12 @@ class CVIssueResponse(BaseModel):
     status_code: int
     results: Optional[CVIssue] = None
 
+class CVSearchResponse(BaseModel):
+    error: str
+    status_code: int
+    number_of_total_results: int
+    results: List[CVVolume] = Field(default_factory=list)
+
 
 class ComicVineAPIError(Exception):
     pass
@@ -199,3 +205,20 @@ class ComicVineClient:
         except Exception as e:
             logger.error(f"[ComicVine] Error fetching single issue details for {issue_id}: {e}")
             raise
+
+    async def search_volumes(self, query: str) -> List[CVVolume]:
+        """
+        Search for volumes matching the query string.
+        """
+        params = {
+            "resources": "volume",
+            "query": query,
+            "field_list": "id,name,start_year,publisher,image,description,deck,count_of_issues"
+        }
+        try:
+            data = await self._request("search/", params=params)
+            resp = CVSearchResponse.model_validate(data)
+            return resp.results
+        except Exception as e:
+            logger.error(f"[ComicVine] Error searching volumes for query '{query}': {e}")
+            return []

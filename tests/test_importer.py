@@ -25,6 +25,8 @@ async def db_session():
         await session.execute(delete(Issue))
         await session.execute(delete(Comic))
         await session.commit()
+    # Close connection pool to prevent event loop issues
+    await engine.dispose()
 
 def test_resolve_publisher_and_imprint():
     # Test imprint mapping rules

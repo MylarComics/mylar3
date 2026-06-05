@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ comic.comic_name }} - Mylar3{% endblock %}
+
+{% block content %}
+<!-- Back Button -->
+<div style="margin-bottom: 1.5rem;">
+    <a href="/" class="btn btn-secondary btn-icon" style="padding: 0.5rem 1rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem; vertical-align: middle;">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Watchlist
+    </a>
+</div>
+
+<!-- Comic Details Header -->
+<div class="detail-header">
+    <img src="/cache/{{ comic.comic_id }}.jpg" 
+         class="detail-cover" 
+         alt="{{ comic.comic_name }}"
+         onerror="this.onerror=null; this.src='https://placehold.co/300x420/131b2e/94a3b8?text=No+Cover';">
+    <div class="detail-info">
+        <h1 class="detail-title">{{ comic.comic_name }}</h1>
+        <div class="detail-publisher">
+            <span>{{ comic.publisher }}</span>
+            <span style="color: var(--text-muted);">•</span>
+            <span>{{ comic.comic_year or "Unknown" }}</span>
+            <span style="color: var(--text-muted);">•</span>
+            <span class="badge {% if comic.status == 'Active' %}badge-active{% else %}badge-paused{% endif %}">{{ comic.status }}</span>
+        </div>
+        <p class="detail-desc">
+            This series details are imported directly from ComicVine. Status tracking and active grab checks are run regularly.
+        </p>
+        
+        <div class="detail-meta-grid">
+            <div class="detail-meta-item">
+                <div class="detail-meta-label">Comic ID</div>
+                <div class="detail-meta-value">{{ comic.comic_id }}</div>
+            </div>
+            <div class="detail-meta-item">
+                <div class="detail-meta-label">Location</div>
+                <div class="detail-meta-value" style="font-size: 0.85rem; word-break: break-all;">{{ comic.location or "Not set" }}</div>
+            </div>
+            <div class="detail-meta-item">
+                <div class="detail-meta-label">Total Issues</div>
+                <div class="detail-meta-value">{{ issues|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issues Table -->
+<div class="section-title">
+    <h2>Issues List</h2>
+</div>
+
+<div class="issue-table-wrapper">
+    <table class="issue-table">
+        <thead>
+            <tr>
+                <th class="issue-th" style="width: 10%;">Num</th>
+                <th class="issue-th" style="width: 50%;">Name</th>
+                <th class="issue-th" style="width: 15%;">Release Date</th>
+                <th class="issue-th" style="width: 15%;">Status</th>
+                <th class="issue-th" style="width: 10%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for issue in issues %}
+                {% include "components/issue_row.html" %}
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    No issues found for this comic series.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

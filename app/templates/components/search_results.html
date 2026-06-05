@@ -1,0 +1,29 @@
+<div class="search-results-panel">
+    {% for volume in volumes %}
+    <div class="search-result-item">
+        <img class="search-result-img" src="{{ volume.image.icon_url if volume.image and volume.image.icon_url else 'https://placehold.co/45x63/131b2e/94a3b8?text=No+Cover' }}" onerror="this.onerror=null; this.src='https://placehold.co/45x63/131b2e/94a3b8?text=No+Cover';">
+        <div class="search-result-info">
+            <div class="search-result-name">{{ volume.name }}</div>
+            <div class="search-result-meta">
+                {{ volume.publisher.name if volume.publisher else "Unknown Publisher" }} 
+                {% if volume.start_year %}({{ volume.start_year }}){% endif %}
+                {% if volume.count_of_issues %}• {{ volume.count_of_issues }} Issues{% endif %}
+            </div>
+        </div>
+        <button class="btn btn-primary"
+                style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"
+                hx-post="/api/comics/add"
+                hx-vals='{"comic_id": "{{ volume.id }}"}'
+                hx-target="#watchlist-grid"
+                hx-swap="beforeend"
+                hx-indicator="#search-indicator"
+                hx-on::after-request="document.getElementById('search-results').innerHTML = ''">
+            Add
+        </button>
+    </div>
+    {% else %}
+    <div style="padding: 1.5rem; text-align: center; color: var(--text-secondary);">
+        No matching comic volumes found.
+    </div>
+    {% endfor %}
+</div>

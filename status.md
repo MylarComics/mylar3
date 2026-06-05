@@ -21,9 +21,9 @@ This file tracks the current features, environment status, and pending/completed
   - [x] Extract and modernize filename parser (Phase 1)
   - [x] Port ComicVine API client, cover downloader, and db sync importer logic (Phase 2)
   - [x] Port search / RSS loops (Phase 3)
-- [ ] Build lightweight HTMX web GUI
+- [x] Build lightweight HTMX web GUI (Phase 4)
 
 ## Next Steps
-1. Build lightweight HTMX web GUI (Phase 4).
-
+- Implement additional search providers or downloaders if requested.
+- Run user acceptance testing for aesthetics.
 
