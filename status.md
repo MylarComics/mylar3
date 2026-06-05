@@ -4,26 +4,24 @@ This file tracks the current features, environment status, and pending/completed
 
 ## Environment Info
 - **Language**: Python 3.14.3 (active virtual environment `.venv`)
-- **Main Entrypoint**: [Mylar.py](file:///E:/Coding Projects/mylar3/Mylar.py)
-- **Dependencies**: Specified in [requirements.txt](file:///E:/Coding Projects/mylar3/requirements.txt)
-- **Test Runner**: pytest (`.\.venv\Scripts\python -m pytest tests`)
+- **Legacy Codebase Location**: [Mylar.py](file:///E:/Coding Projects/mylar3/.old/Mylar.py)
+- **New Stack**: FastAPI + SQLModel (SQLAlchemy & Pydantic) + SQLite + HTMX / Alpine.js (Proposed)
 
 ## Current Status
-- **Main codebase**: Functional but runs on legacy patterns (CherryPy web server, custom scheduler, custom DB mappings).
+- **Main codebase**: The legacy CherryPy application codebase has been successfully archived to [`.old/`](file:///E:/Coding Projects/mylar3/.old) for reference.
 - **Recent changes**:
-  - Integrated `log_memory` function into [logger.py](file:///E:/Coding Projects/mylar3/mylar/logger.py) for tracking system memory footprint.
-  - Deleted temporary UTF-16LE `mylar_logger_new.py`.
-- **Test Status**:
-  - Out of 235 tests: 235 pass, 0 fails (mockito verification fix applied for python 3.14).
+  - Moved legacy application folders (`mylar/`, `lib/`, `tests/`, etc.) and databases/configs to `.old/`.
+  - Kept only virtual environment (`.venv`), rule standard configs, git files, and `status.md` in the root workspace.
 
 ## Features Tracking
-- [x] CherryPy Web Server (Core GUI)
-- [x] Database migration & maintenance scripts
-- [x] Active logs & integrated memory logger
-- [x] Test suite stability (fixed mockito `os` mock under Python 3.14)
-- [ ] Custom comic grabber features (to be designed/implemented)
+- [x] Archive legacy codebase to [`.old/`](file:///E:/Coding Projects/mylar3/.old)
+- [ ] Bootstrap FastAPI application backend
+- [ ] Integrate SQLModel for type-safe database access
+- [ ] Migrate/extract filename parsing and search logic from `.old/mylar`
+- [ ] Build lightweight HTMX web GUI
 
 ## Next Steps
-1. Gather requirements for the custom comic grabber functionality.
-2. Outline implementation plan for the custom features.
+1. Draft the implementation plan to bootstrap the new FastAPI backend.
+2. Outline the first set of extracted functions (e.g., matching algorithms from `.old/mylar/filechecker.py`).
+
 
