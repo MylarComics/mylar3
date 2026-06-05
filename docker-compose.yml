@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mylar3-db
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mylar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mylarpass}
+      POSTGRES_DB: ${POSTGRES_DB:-mylar_new}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: mylar3-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mylar3-web
+    restart: unless-stopped
+    ports:
+      - "${MYLAR_PORT:-8090}:8090"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-placeholder_secret_key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-mylar}:${POSTGRES_PASSWORD:-mylarpass}@postgres:5432/${POSTGRES_DB:-mylar_new}
+      - REDIS_URL=redis://redis:6379/0
+      - COMICVINE_API_KEY=${COMICVINE_API_KEY}
+    volumes:
+      - .:/app
+      - config_data:/config
+    depends_on:
+      - postgres
+      - redis
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mylar3-worker
+    command: celery -A app.worker.celery_app worker --loglevel=info
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-placeholder_secret_key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-mylar}:${POSTGRES_PASSWORD:-mylarpass}@postgres:5432/${POSTGRES_DB:-mylar_new}
+      - REDIS_URL=redis://redis:6379/0
+      - COMICVINE_API_KEY=${COMICVINE_API_KEY}
+    volumes:
+      - .:/app
+      - config_data:/config
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  config_data:

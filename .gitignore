@@ -30,3 +30,10 @@ __pycache__
 .devcontainer/config
 .devcontainer/comics
 .devcontainer/downloads
+
+# Local environment configuration secrets
+.env
+
+# Local python virtual environment
+.venv/
+

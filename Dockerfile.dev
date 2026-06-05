@@ -1,0 +1,26 @@
+FROM python:3.11-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    build-base \
+    libffi-dev \
+    zlib-dev \
+    jpeg-dev \
+    nodejs
+
+WORKDIR /app
+
+# Cache dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy active workspace files
+COPY . .
+
+# Set PYTHONPATH to include the /app directory
+ENV PYTHONPATH=/app
+
+EXPOSE 8090
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8090", "--reload"]
