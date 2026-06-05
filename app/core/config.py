@@ -15,9 +15,19 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
     
     COMICVINE_API_KEY: str = ""
+    COMICVINE_API_URL: str = "https://comicvine.gamespot.com/api/"
+    CV_USER_AGENT: str = "comictagger image fetcher"
+    CVAPI_RATE: float = 2.0
+    CV_VERIFY: bool = True
+    CACHE_DIR: str = "cache"
+    DESTINATION_DIR: str = "comics"
+    CREATE_FOLDERS: bool = True
+    COMIC_COVER_LOCAL: bool = True
+    COVER_FOLDER_LOCAL: bool = True
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore"
+    }
 
 settings = Settings()

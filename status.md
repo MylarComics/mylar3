@@ -19,11 +19,11 @@ This file tracks the current features, environment status, and pending/completed
 - [x] Integrate SQLModel for type-safe database access
 - [/] Migrate/extract filename parsing and search logic from `.old/mylar`
   - [x] Extract and modernize filename parser (Phase 1)
-  - [ ] Port search / RSS loops
+  - [x] Port ComicVine API client, cover downloader, and db sync importer logic (Phase 2)
+  - [ ] Port search / RSS loops (Phase 3)
 - [ ] Build lightweight HTMX web GUI
 
 ## Next Steps
-1. Port ComicVine API client and db sync logic (Phase 2).
-2. Port search logic and indexer check queries (Phase 3).
+1. Port search logic and indexer check queries (Phase 3).
 
 
