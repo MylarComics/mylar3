@@ -24,6 +24,8 @@ def setup_logger():
     return logger
 
 logger = setup_logger()
+logger.fdebug = logger.debug  # Legacy Mylar verbose debug mapping
+
 
 def log_memory(context_msg="Memory Check"):
     try:
