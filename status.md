@@ -17,13 +17,13 @@ This file tracks the current features, environment status, and pending/completed
 - [x] Archive legacy codebase to [`.old/`](file:///E:/Coding Projects/mylar3/.old)
 - [x] Bootstrap FastAPI application backend
 - [x] Integrate SQLModel for type-safe database access
-- [/] Migrate/extract filename parsing and search logic from `.old/mylar`
+- [x] Migrate/extract filename parsing and search logic from `.old/mylar`
   - [x] Extract and modernize filename parser (Phase 1)
   - [x] Port ComicVine API client, cover downloader, and db sync importer logic (Phase 2)
-  - [ ] Port search / RSS loops (Phase 3)
+  - [x] Port search / RSS loops (Phase 3)
 - [ ] Build lightweight HTMX web GUI
 
 ## Next Steps
-1. Port search logic and indexer check queries (Phase 3).
+1. Build lightweight HTMX web GUI (Phase 4).
 
 

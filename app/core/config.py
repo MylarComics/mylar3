@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     CREATE_FOLDERS: bool = True
     COMIC_COVER_LOCAL: bool = True
     COVER_FOLDER_LOCAL: bool = True
+    NEWZNAB_PROVIDERS: str = ""
+    TORZNAB_PROVIDERS: str = ""
 
     model_config = {
         "env_file": ".env",
