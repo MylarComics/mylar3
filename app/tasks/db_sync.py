@@ -19,7 +19,7 @@ from app.models.comic import Comic
 from app.models.issue import Issue
 from app.notifications.factory import get_notifier
 from app.services.cv_api import ComicVineClient
-from app.worker import celery_app
+from app.worker import celery_app, run_async
 
 
 @celery_app.task(name="tasks.sync_comic_metadata", bind=True, max_retries=2)
@@ -52,7 +52,7 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
         # Fetch fresh volume data from ComicVine
         cv_client = ComicVineClient()
         try:
-            volume_data = asyncio.run(cv_client.get_volume(int(comic_id)))
+            volume_data = run_async(cv_client.get_volume(int(comic_id)))
         except Exception as exc:
             logger.error(f"[DB Sync] ComicVine API call failed for {comic_id}: {exc}")
             return {"comic_id": comic_id, "updated": False, "new_issues": 0}
@@ -90,7 +90,7 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
         new_issues_added = 0
         if comic.status == "Active":
             try:
-                issues_resp = asyncio.run(cv_client.get_issues(str(comic_id)))
+                issues_resp = run_async(cv_client.get_issues(str(comic_id)))
                 cv_issues = issues_resp.results
             except Exception as exc:
                 logger.error(
@@ -136,7 +136,7 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
         if notifier:
             noun = "issue" if new_issues_added == 1 else "issues"
             try:
-                asyncio.run(
+                run_async(
                     notifier.notify(
                         title="New Issues Found 📥",
                         body=(

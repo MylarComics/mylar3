@@ -149,7 +149,7 @@ class TestGrabIssueNotifications:
     }
 
     @patch("app.tasks.grab_issue.get_sync_session")
-    @patch("app.tasks.grab_issue.asyncio.run")
+    @patch("app.tasks.grab_issue.run_async")
     @patch("app.tasks.grab_issue.get_downloader")
     @patch("app.tasks.grab_issue.get_notifier")
     def test_snatch_notification_sent_on_success(
@@ -183,7 +183,7 @@ class TestGrabIssueNotifications:
         assert mock_run.call_count == 2
 
     @patch("app.tasks.grab_issue.get_sync_session")
-    @patch("app.tasks.grab_issue.asyncio.run")
+    @patch("app.tasks.grab_issue.run_async")
     @patch("app.tasks.grab_issue.get_downloader")
     @patch("app.tasks.grab_issue.get_notifier")
     def test_failure_notification_sent_on_failed_grab(
@@ -206,7 +206,7 @@ class TestGrabIssueNotifications:
         assert result["status"] == "Failed"
         mock_get_notifier.assert_called()
 
-    @patch("app.tasks.grab_issue.asyncio.run")
+    @patch("app.tasks.grab_issue.run_async")
     @patch("app.tasks.grab_issue.get_downloader")
     @patch("app.tasks.grab_issue.get_notifier")
     def test_no_notification_when_notify_on_failure_false(

@@ -24,7 +24,7 @@ from app.models.issue import Issue
 from app.notifications.factory import get_notifier
 from app.services.ddl import DDLService, JDownloader2
 from app.tasks.post_process import post_process_folder
-from app.worker import celery_app
+from app.worker import celery_app, run_async
 
 
 def _send_notification(title: str, body: str, notify_type: str) -> None:
@@ -33,7 +33,7 @@ def _send_notification(title: str, body: str, notify_type: str) -> None:
     if notifier is None:
         return
     try:
-        asyncio.run(notifier.notify(title=title, body=body, notify_type=notify_type))
+        run_async(notifier.notify(title=title, body=body, notify_type=notify_type))
     except Exception as exc:
         logger.error(f"[Grab] Notification failed: {exc}")
 
@@ -68,7 +68,7 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
     if result.get("type") == "ddl":
         ddl_service = DDLService()
         try:
-            direct_link = asyncio.run(ddl_service.resolve_download_link(download_url))
+            direct_link = run_async(ddl_service.resolve_download_link(download_url))
         except Exception as e:
             logger.error(f"[Grab] Failed resolving download link for DDL: {e}")
             direct_link = None
@@ -79,7 +79,7 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
                 package_name = f"{title} - {issue_id}"
                 logger.info(f"[Grab] Sending DDL link to JDownloader2 package {package_name}")
                 try:
-                    jd_res = asyncio.run(jd2.submit({direct_link: "DEFAULT"}, package_name))
+                    jd_res = run_async(jd2.submit({direct_link: "DEFAULT"}, package_name))
                     if jd_res.get("status"):
                         job_id = jd_res["jobid"]
                     else:
@@ -96,7 +96,7 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
                 dest_filepath = os.path.join(temp_dir, filename)
                 logger.info(f"[Grab] Downloading direct link to {dest_filepath}")
                 try:
-                    download_ok = asyncio.run(ddl_service.download_file(direct_link, dest_filepath))
+                    download_ok = run_async(ddl_service.download_file(direct_link, dest_filepath))
                     if download_ok:
                         post_process_folder.delay(temp_dir)
                         job_id = f"ddl-{issue_id}"
@@ -116,7 +116,7 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
 
         # Submit the download
         try:
-            job_id = asyncio.run(
+            job_id = run_async(
                 downloader.add_download(
                     url_or_filepath=download_url,
                     title=title,

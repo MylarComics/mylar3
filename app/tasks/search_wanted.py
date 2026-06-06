@@ -17,7 +17,7 @@ from app.core.sync_db import get_sync_session
 from app.models.comic import Comic
 from app.models.issue import Issue
 from app.services.search import search_issue, SearchResultItem
-from app.worker import celery_app
+from app.worker import celery_app, run_async
 
 # Import at module level so tests can patch app.tasks.search_wanted.grab_issue
 from app.tasks.grab_issue import grab_issue
@@ -80,7 +80,7 @@ def search_wanted(self) -> dict:
 
             # Run the async search in the sync Celery context
             try:
-                results: List[SearchResultItem] = asyncio.run(
+                results: List[SearchResultItem] = run_async(
                     search_issue(comic, issue)
                 )
             except Exception as exc:

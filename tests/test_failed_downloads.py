@@ -85,7 +85,7 @@ async def test_search_issue_filters_blacklisted_release(mock_get, mock_sessionma
     assert len(matches) == 0
 
 @patch("app.tasks.grab_issue.get_sync_session")
-@patch("app.tasks.grab_issue.asyncio.run")
+@patch("app.tasks.grab_issue.run_async")
 @patch("app.tasks.grab_issue.get_downloader")
 def test_grab_issue_submission_failure_blacklists_release(mock_downloader_factory, mock_run, mock_ctx):
     # Setup downloader to throw an exception / return no job ID
@@ -121,7 +121,7 @@ def test_grab_issue_submission_failure_blacklists_release(mock_downloader_factor
     assert failed_release_records[0].issue_id == "101"
 
 @patch("app.tasks.grab_issue.get_sync_session")
-@patch("app.tasks.grab_issue.asyncio.run")
+@patch("app.tasks.grab_issue.run_async")
 @patch("app.tasks.grab_issue.get_downloader")
 @patch("app.tasks.search_wanted.search_wanted.delay")
 def test_grab_issue_submission_failure_auto_retries(mock_search_delay, mock_downloader_factory, mock_run, mock_ctx):

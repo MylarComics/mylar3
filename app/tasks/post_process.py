@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional, List, Dict, Any
-from app.worker import celery_app
+from app.worker import celery_app, run_async
 from app.core.config import settings
 from app.core.logger import logger
 from app.core.db import async_session
@@ -21,7 +21,7 @@ def post_process_folder(folder_path: str, nzb_name: Optional[str] = None, status
             return await pp_service.scan_and_process(folder_path, nzb_name, status)
             
     try:
-        return asyncio.run(_run())
+        return run_async(_run())
     except Exception as exc:
         logger.error(f"[Tasks] Post-processing task failed: {exc}", exc_info=True)
         return [{"file": folder_path, "status": "failed", "detail": str(exc)}]

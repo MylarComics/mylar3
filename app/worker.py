@@ -66,3 +66,30 @@ celery_app.conf.update(
         },
     },
 )
+
+import asyncio
+from celery.signals import worker_process_init, worker_process_shutdown
+
+_loop = None
+
+@worker_process_init.connect
+def init_worker_process(*args, **kwargs):
+    global _loop
+    _loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_loop)
+
+@worker_process_shutdown.connect
+def shutdown_worker_process(*args, **kwargs):
+    global _loop
+    if _loop:
+        try:
+            _loop.close()
+        except Exception:
+            pass
+
+def run_async(coro):
+    global _loop
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+    return _loop.run_until_complete(coro)

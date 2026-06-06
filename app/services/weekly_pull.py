@@ -47,7 +47,7 @@ class WeeklyPullService:
             week = week if week is not None else info["week"]
             year = year if year is not None else info["year"]
 
-        url = "https://walksoftly.itsaninja.party/newcomics.php"
+        url = settings.WEEKLY_PULL_PROXY_URL
         params = {"week": str(week), "year": str(year)}
 
         logger.info(f"[WeeklyPull] Fetching weekly pull list for week {week}, year {year} from proxy...")

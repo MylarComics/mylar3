@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional, Dict, Any
-from app.worker import celery_app
+from app.worker import celery_app, run_async
 from app.core.config import settings
 from app.core.logger import logger
 from app.core.db import async_session
@@ -24,7 +24,7 @@ def sync_weekly_pull_list(week: Optional[int] = None, year: Optional[int] = None
                 await service.close()
                 
     try:
-        return asyncio.run(_run())
+        return run_async(_run())
     except Exception as exc:
         logger.error(f"[Tasks] Weekly pull sync task failed: {exc}", exc_info=True)
         return {"status": "failure", "detail": str(exc)}

@@ -77,6 +77,7 @@ class SystemSettings(SQLModel, table=True):
     PUBLIC_VERIFY: bool = True
 
     # Weekly Pull list Settings
+    WEEKLY_PULL_PROXY_URL: str = "https://walksoftly.itsaninja.party/newcomics.php"
     ALT_PULL: int = 2
     AUTO_MASS_ADD: bool = False
     BIGGIE_PUB: int = 55

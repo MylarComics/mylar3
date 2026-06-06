@@ -1,0 +1,7 @@
+<span class="badge {% if issue.status == 'Wanted' %}badge-wanted{% elif issue.status == 'Snatched' %}badge-snatched{% elif issue.status == 'Downloaded' %}badge-downloaded{% else %}badge-skipped{% endif %}"
+      id="issue-badge-{{ issue.issue_id }}"
+      hx-post="/api/issues/{{ issue.issue_id }}/toggle"
+      hx-target="#issue-badge-{{ issue.issue_id }}"
+      hx-swap="outerHTML">
+    {{ issue.status }}
+</span>

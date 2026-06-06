@@ -105,7 +105,7 @@ class TestSearchWanted:
         assert result == {"scanned": 0, "matched": 0, "grabbed": 0}
 
     @patch("app.tasks.search_wanted.get_sync_session")
-    @patch("app.tasks.search_wanted.asyncio.run")
+    @patch("app.tasks.search_wanted.run_async")
     @patch("app.tasks.grab_issue.grab_issue")  # patch on the owning module
     def test_found_match_dispatches_grab(self, mock_grab, mock_run, mock_ctx):
         """When search returns a result and GRAB_ON_MATCH=True, grab_issue.delay is called."""
@@ -136,7 +136,7 @@ class TestSearchWanted:
         assert "download_url" in call_kwargs.kwargs["result"]
 
     @patch("app.tasks.search_wanted.get_sync_session")
-    @patch("app.tasks.search_wanted.asyncio.run")
+    @patch("app.tasks.search_wanted.run_async")
     def test_no_match_does_not_grab(self, mock_run, mock_ctx):
         """No search results → grab_issue.delay must NOT be called."""
         comic = _make_comic()
@@ -161,7 +161,7 @@ class TestSearchWanted:
         mock_grab.delay.assert_not_called()
 
     @patch("app.tasks.search_wanted.get_sync_session")
-    @patch("app.tasks.search_wanted.asyncio.run")
+    @patch("app.tasks.search_wanted.run_async")
     def test_paused_comic_skipped(self, mock_run, mock_ctx):
         """Issues belonging to a Paused comic must be skipped entirely."""
         comic = _make_comic(status="Paused")
@@ -183,7 +183,7 @@ class TestSearchWanted:
         mock_grab.delay.assert_not_called()
 
     @patch("app.tasks.search_wanted.get_sync_session")
-    @patch("app.tasks.search_wanted.asyncio.run")
+    @patch("app.tasks.search_wanted.run_async")
     def test_grab_on_match_false_does_not_grab(self, mock_run, mock_ctx):
         """GRAB_ON_MATCH=False → match is logged but grab is never dispatched."""
         comic = _make_comic()
@@ -222,7 +222,7 @@ class TestGrabIssue:
     }
 
     @patch("app.tasks.grab_issue.get_sync_session")
-    @patch("app.tasks.grab_issue.asyncio.run")
+    @patch("app.tasks.grab_issue.run_async")
     @patch("app.tasks.grab_issue.get_downloader")
     def test_grab_success_updates_status(self, mock_factory, mock_run, mock_ctx):
         """Successful grab → issue.status set to Snatched."""
@@ -253,7 +253,7 @@ class TestGrabIssue:
         assert result["status"] == "Skipped"
 
     @patch("app.tasks.grab_issue.get_sync_session")
-    @patch("app.tasks.grab_issue.asyncio.run")
+    @patch("app.tasks.grab_issue.run_async")
     @patch("app.tasks.grab_issue.get_downloader")
     def test_downloader_failure_returns_failed(self, mock_factory, mock_run, mock_ctx):
         """Downloader returning None → status Failed, issue NOT updated."""

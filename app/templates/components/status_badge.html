@@ -1,0 +1,7 @@
+<span class="badge {% if comic.status == 'Active' %}badge-active{% else %}badge-paused{% endif %}"
+      id="status-badge-{{ comic.comic_id }}"
+      hx-post="/api/comics/{{ comic.comic_id }}/toggle"
+      hx-target="#status-badge-{{ comic.comic_id }}"
+      hx-swap="outerHTML">
+    {{ comic.status }}
+</span>

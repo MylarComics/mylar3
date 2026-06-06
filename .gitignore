@@ -37,3 +37,6 @@ __pycache__
 # Local python virtual environment
 .venv/
 
+# Celery beat schedules
+celerybeat-schedule*
+

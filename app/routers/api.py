@@ -34,7 +34,7 @@ async def search_comicvine(request: Request, q: str = ""):
         volumes = await cv_client.search_volumes(q)
     except Exception as e:
         logger.error(f"ComicVine search failed: {e}")
-        return HTMLResponse(content='<div style="padding: 1.5rem; text-align: center; color: var(--accent-rose);">Search failed. Please check your API key and internet connectivity.</div>')
+        return templates.TemplateResponse(request, "components/search_error.html", {})
         
     return templates.TemplateResponse(
         request,
@@ -103,7 +103,11 @@ async def add_comic(
     return HTMLResponse(content=full_response)
 
 @router.post("/comics/{comic_id}/toggle", response_class=HTMLResponse)
-async def toggle_comic_status(comic_id: str, session: AsyncSession = Depends(get_session)):
+async def toggle_comic_status(
+    request: Request,
+    comic_id: str,
+    session: AsyncSession = Depends(get_session)
+):
     stmt = select(Comic).where(Comic.comic_id == comic_id)
     result = await session.execute(stmt)
     comic = result.scalars().first()
@@ -115,16 +119,11 @@ async def toggle_comic_status(comic_id: str, session: AsyncSession = Depends(get
     await session.commit()
     await session.refresh(comic)
     
-    badge_class = "badge-active" if comic.status == "Active" else "badge-paused"
-    return f"""
-    <span class="badge {badge_class}"
-          id="status-badge-{comic.comic_id}"
-          hx-post="/api/comics/{comic.comic_id}/toggle"
-          hx-target="#status-badge-{comic.comic_id}"
-          hx-swap="outerHTML">
-        {comic.status}
-    </span>
-    """
+    return templates.TemplateResponse(
+        request,
+        "components/status_badge.html",
+        {"comic": comic}
+    )
 
 @router.delete("/comics/{comic_id}", response_class=HTMLResponse)
 async def delete_comic(
@@ -170,7 +169,11 @@ async def delete_comic(
     return HTMLResponse(content="\n".join(oob_elements))
 
 @router.post("/issues/{issue_id}/toggle", response_class=HTMLResponse)
-async def toggle_issue_status(issue_id: str, session: AsyncSession = Depends(get_session)):
+async def toggle_issue_status(
+    request: Request,
+    issue_id: str,
+    session: AsyncSession = Depends(get_session)
+):
     stmt = select(Issue).where(Issue.issue_id == issue_id)
     result = await session.execute(stmt)
     issue = result.scalars().first()
@@ -189,23 +192,11 @@ async def toggle_issue_status(issue_id: str, session: AsyncSession = Depends(get
     await session.commit()
     await session.refresh(issue)
     
-    badge_classes = {
-        "Wanted": "badge-wanted",
-        "Snatched": "badge-snatched",
-        "Downloaded": "badge-downloaded",
-        "Skipped": "badge-skipped"
-    }
-    badge_class = badge_classes.get(issue.status, "badge-skipped")
-    
-    return f"""
-    <span class="badge {badge_class}"
-          id="issue-badge-{issue.issue_id}"
-          hx-post="/api/issues/{issue.issue_id}/toggle"
-          hx-target="#issue-badge-{issue.issue_id}"
-          hx-swap="outerHTML">
-        {issue.status}
-    </span>
-    """
+    return templates.TemplateResponse(
+        request,
+        "components/issue_badge.html",
+        {"issue": issue}
+    )
 
 @router.post("/issues/{issue_id}/search", response_class=HTMLResponse)
 async def manual_search_issue(
@@ -282,24 +273,41 @@ async def test_notification():
             content={"ok": False, "message": f"Exception: {exc}"}
         )
 
+class PostProcessForm:
+    def __init__(
+        self,
+        folder_path: str = Form(...),
+        nzb_name: Optional[str] = Form(None),
+        status: Optional[str] = Form("success")
+    ):
+        self.folder_path = folder_path
+        self.nzb_name = nzb_name
+        self.status = status
+
 @router.post("/postprocess")
 async def api_postprocess(
-    folder_path: str = Form(...),
-    nzb_name: Optional[str] = Form(None),
-    status: Optional[str] = Form("success")
+    form_data: PostProcessForm = Depends()
 ):
-    task = post_process_folder.delay(folder_path, nzb_name, status)
+    task = post_process_folder.delay(form_data.folder_path, form_data.nzb_name, form_data.status)
     return {"ok": True, "task_id": task.id}
+
+class WeeklySyncForm:
+    def __init__(
+        self,
+        week: Optional[int] = Form(None),
+        year: Optional[int] = Form(None)
+    ):
+        self.week = week
+        self.year = year
 
 @router.post("/weekly/sync")
 async def sync_weekly_releases(
-    week: Optional[int] = Form(None),
-    year: Optional[int] = Form(None),
+    form_data: WeeklySyncForm = Depends(),
     session: AsyncSession = Depends(get_session)
 ):
     service = WeeklyPullService(session)
     try:
-        res = await service.fetch_and_sync(week, year)
+        res = await service.fetch_and_sync(form_data.week, form_data.year)
         return res
     finally:
         await service.close()
@@ -317,14 +325,21 @@ async def update_settings(request: Request, session: AsyncSession = Depends(get_
     else:
         return JSONResponse({"ok": False, "message": "Failed to save settings to database"})
 
+class ImportScanForm:
+    def __init__(
+        self,
+        scan_dir: str = Form(...)
+    ):
+        self.scan_dir = scan_dir
+
 @router.post("/import/scan", response_class=HTMLResponse)
 async def api_import_scan(
     request: Request,
-    scan_dir: str = Form(...),
+    form_data: ImportScanForm = Depends(),
     session: AsyncSession = Depends(get_session)
 ):
     service = LibrarySyncService(session)
-    res = await service.scan_and_sync_library(scan_dir)
+    res = await service.scan_and_sync_library(form_data.scan_dir)
     
     return templates.TemplateResponse(
         request,
