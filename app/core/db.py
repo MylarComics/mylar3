@@ -20,6 +20,7 @@ async def init_db():
             from app.models.issue import Issue
             from app.models.settings import SystemSettings
             from app.models.weekly import WeeklyPullList
+            from app.models.failed_release import FailedRelease
         except ImportError:
             pass
         await conn.run_sync(SQLModel.metadata.create_all)

@@ -235,6 +235,26 @@ async def search_issue(comic: Comic, issue: Issue) -> List[SearchResultItem]:
         logger.warning("[Search] No search providers/indexers are configured.")
         return []
 
+    # Load failed/blacklisted releases for this issue if handling is enabled
+    failed_release_ids = set()
+    failed_titles = set()
+    if settings.FAILED_DOWNLOAD_HANDLING:
+        try:
+            from app.core.db import async_session
+            from app.models.failed_release import FailedRelease
+            from sqlmodel import select
+            async with async_session() as session:
+                stmt = select(FailedRelease).where(FailedRelease.issue_id == issue.issue_id)
+                res = await session.execute(stmt)
+                failed_list = res.scalars().all()
+                for fr in failed_list:
+                    if fr.release_id:
+                        failed_release_ids.add(fr.release_id)
+                    if fr.title:
+                        failed_titles.add(fr.title.strip().lower())
+        except Exception as e:
+            logger.error(f"[Search] Failed to fetch failed/blacklisted releases: {e}")
+
     # Generate query strings
     queries = generate_search_queries(comic.comic_name, issue.issue_number)
     
@@ -257,6 +277,10 @@ async def search_issue(comic: Comic, issue: Issue) -> List[SearchResultItem]:
         for candidate in candidates:
             if candidate.download_url in seen_urls:
                 continue
+            if settings.FAILED_DOWNLOAD_HANDLING:
+                if candidate.download_url in failed_release_ids or candidate.title.strip().lower() in failed_titles:
+                    logger.info(f"[Search] Skipping failed/blacklisted release: {candidate.title}")
+                    continue
             # Parse the release name using our modernized parser
             parsed = parse_filename(candidate.title)
             if is_title_match(parsed, comic, issue):
@@ -273,6 +297,10 @@ async def search_issue(comic: Comic, issue: Issue) -> List[SearchResultItem]:
             for candidate in ddl_candidates:
                 if candidate.download_url in seen_urls:
                     continue
+                if settings.FAILED_DOWNLOAD_HANDLING:
+                    if candidate.download_url in failed_release_ids or candidate.title.strip().lower() in failed_titles:
+                        logger.info(f"[Search] Skipping failed/blacklisted release: {candidate.title}")
+                        continue
                 parsed = parse_filename(candidate.title)
                 if is_title_match(parsed, comic, issue):
                     seen_urls.add(candidate.download_url)

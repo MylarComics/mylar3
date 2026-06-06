@@ -56,11 +56,127 @@ class PostProcessorService:
         safe = re.sub(r'[<>:"/\\|?*]', '', segment)
         return re.sub(r'\s+', ' ', safe).strip()
 
-    async def scan_and_process(self, download_dir: str, nzb_name: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def handle_failed_download(self, nzb_name: Optional[str], download_dir: str) -> Dict[str, Any]:
+        """
+        Handles failed downloads passed from the downloader or API.
+        Parses release name, matches it to Comic/Issue, blacklists it, and cycles status.
+        """
+        ref_name = nzb_name or os.path.basename(download_dir.rstrip("/\\"))
+        if not ref_name:
+            raise ValueError("Could not determine release name or folder name for failed download")
+
+        # Remove common compression/archive extensions if any
+        ref_name_clean = re.sub(r'\.(cbz|cbr|zip|rar|tar|gz|pdf|cb7|nzb)$', '', ref_name, flags=re.IGNORECASE)
+
+        # 1. Parse name using parse_filename
+        parsed = parse_filename(ref_name_clean)
+        series_name = parsed.get("series_name")
+        issue_number = parsed.get("issue_number")
+        year = parsed.get("issue_year")
+
+        if not series_name or not issue_number:
+            raise ValueError(f"Could not parse series name or issue number from failed release reference: '{ref_name_clean}'")
+
+        # 2. Match Comic
+        stmt_comics = select(Comic)
+        res_comics = await self.session.execute(stmt_comics)
+        comics = res_comics.scalars().all()
+
+        matched_comic: Optional[Comic] = None
+        norm_parsed = re.sub(r'[^a-z0-9]', '', series_name.lower())
+        for c in comics:
+            norm_c = re.sub(r'[^a-z0-9]', '', c.comic_name.lower())
+            if norm_c == norm_parsed:
+                if year and c.comic_year:
+                    if int(year) == int(c.comic_year):
+                        matched_comic = c
+                        break
+                if matched_comic is None:
+                    matched_comic = c
+
+        if not matched_comic:
+            raise ValueError(f"No matching active comic series found in watchlist for failed release: '{series_name}'")
+
+        # 3. Match Issue
+        stmt_issues = select(Issue).where(Issue.comic_id == matched_comic.comic_id)
+        res_issues = await self.session.execute(stmt_issues)
+        all_issues = res_issues.scalars().all()
+
+        matched_issue: Optional[Issue] = None
+        for iss in all_issues:
+            try:
+                if float(iss.issue_number) == float(issue_number):
+                    matched_issue = iss
+                    break
+            except ValueError:
+                if iss.issue_number.strip().lower() == str(issue_number).strip().lower():
+                    matched_issue = iss
+                    break
+
+        if not matched_issue:
+            raise ValueError(f"No matching issue #{issue_number} found under series '{matched_comic.comic_name}'")
+
+        # 4. Save FailedRelease blacklist record
+        from app.models.failed_release import FailedRelease
+        import datetime
+        
+        # We use the ref_name as release_id and title
+        stmt_fail = select(FailedRelease).where(FailedRelease.release_id == ref_name)
+        res_fail = await self.session.execute(stmt_fail)
+        existing = res_fail.scalars().first()
+        
+        if not existing:
+            failed_rel = FailedRelease(
+                release_id=ref_name,
+                title=ref_name,
+                provider="Unknown",
+                comic_id=matched_comic.comic_id,
+                issue_id=matched_issue.issue_id,
+                date_failed=datetime.datetime.utcnow().isoformat()
+            )
+            self.session.add(failed_rel)
+
+        # 5. Cycle issue status
+        if settings.FAILED_AUTO:
+            matched_issue.status = "Wanted"
+        else:
+            matched_issue.status = "Failed"
+            
+        self.session.add(matched_issue)
+        await self.session.commit()
+
+        if settings.FAILED_AUTO:
+            from app.tasks.search_wanted import search_wanted
+            logger.info(f"[PostProcessor] FAILED_AUTO is enabled. Dispatching search_wanted.")
+            search_wanted.delay()
+
+        # Send notifications
+        from app.notifications.factory import get_notifier
+        notifier = get_notifier()
+        if notifier and settings.NOTIFY_ON_FAILURE:
+            try:
+                title = "Download Failed ❌"
+                body = f"Failed download reported for '{matched_comic.comic_name} #{matched_issue.issue_number}'\nRelease: {ref_name}"
+                await notifier.notify(title=title, body=body, notify_type="failure")
+            except Exception as e:
+                logger.error(f"[PostProcessor] Notification failed: {e}")
+
+        logger.info(f"[PostProcessor] Processed failed download for '{ref_name}' (status set to {matched_issue.status})")
+        return {"file": ref_name, "status": "failed_recorded", "detail": f"Status updated to {matched_issue.status}"}
+
+    async def scan_and_process(self, download_dir: str, nzb_name: Optional[str] = None, status: Optional[str] = "success") -> List[Dict[str, Any]]:
         """
         Scans a download directory for new comic files, matches them to watchlist,
         formats/moves them, and flags them as Downloaded.
         """
+        if settings.FAILED_DOWNLOAD_HANDLING and (status == "failed" or status == "Failed"):
+            try:
+                res = await self.handle_failed_download(nzb_name, download_dir)
+                return [res]
+            except Exception as e:
+                logger.error(f"[PostProcessor] Failed to record download failure: {e}", exc_info=True)
+                return [{"file": nzb_name or download_dir, "status": "failed", "detail": str(e)}]
+
         results = []
         if not os.path.exists(download_dir):
             logger.error(f"[PostProcessor] Download directory does not exist: {download_dir}")
@@ -86,6 +202,12 @@ class PostProcessorService:
             except Exception as e:
                 logger.error(f"[PostProcessor] Failed to process file {filename}: {e}", exc_info=True)
                 results.append({"file": filename, "status": "failed", "detail": str(e)})
+                if settings.FAILED_DOWNLOAD_HANDLING:
+                    try:
+                        ref_name = nzb_name or filename
+                        await self.handle_failed_download(ref_name, filepath)
+                    except Exception as fe:
+                        logger.error(f"[PostProcessor] Failed to run failure handler for {filename}: {fe}")
 
         return results
 

@@ -127,9 +127,46 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
 
     if not job_id:
         logger.error(
-            f"[Grab] Download submission failed for issue {issue_id} — "
-            f"will leave status as Wanted for next search cycle."
+            f"[Grab] Download submission failed for issue {issue_id}."
         )
+        if settings.FAILED_DOWNLOAD_HANDLING:
+            from app.models.failed_release import FailedRelease
+            import datetime
+            try:
+                with get_sync_session() as session:
+                    # Normalize / fallback for download_url
+                    target_url = download_url or f"failed-submission-{issue_id}"
+                    stmt = select(FailedRelease).where(FailedRelease.release_id == target_url)
+                    existing = session.exec(stmt).first()
+                    if not existing:
+                        # Fetch the issue to retrieve comic_id
+                        issue_obj = session.exec(select(Issue).where(Issue.issue_id == issue_id)).first()
+                        comic_id = issue_obj.comic_id if issue_obj else ""
+                        
+                        failed_rel = FailedRelease(
+                            release_id=target_url,
+                            title=title,
+                            provider=provider_name,
+                            comic_id=comic_id,
+                            issue_id=issue_id,
+                            date_failed=datetime.datetime.utcnow().isoformat()
+                        )
+                        session.add(failed_rel)
+
+                        if issue_obj:
+                            if settings.FAILED_AUTO:
+                                issue_obj.status = "Wanted"
+                            else:
+                                issue_obj.status = "Failed"
+                            session.add(issue_obj)
+            except Exception as e:
+                logger.error(f"[Grab] Failed to blacklist failed release: {e}")
+
+            if settings.FAILED_AUTO:
+                from app.tasks.search_wanted import search_wanted
+                logger.info(f"[Grab] FAILED_AUTO is enabled. Dispatching search_wanted delay.")
+                search_wanted.delay()
+
         if settings.NOTIFY_ON_FAILURE:
             _send_notification(
                 title="Grab Failed ❌",

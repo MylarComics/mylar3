@@ -281,10 +281,11 @@ async def test_notification():
 @router.post("/postprocess")
 async def api_postprocess(
     folder_path: str = Form(...),
-    nzb_name: Optional[str] = Form(None)
+    nzb_name: Optional[str] = Form(None),
+    status: Optional[str] = Form("success")
 ):
     from app.tasks.post_process import post_process_folder
-    task = post_process_folder.delay(folder_path, nzb_name)
+    task = post_process_folder.delay(folder_path, nzb_name, status)
     return {"ok": True, "task_id": task.id}
 
 @router.post("/weekly/sync")
