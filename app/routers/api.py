@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_session
 from app.models.comic import Comic
 from app.models.issue import Issue
+from app.notifications.factory import get_notifier
 from app.services.cv_api import ComicVineClient
 from app.services.importer import add_comic_to_db
 from app.services.search import search_issue
@@ -232,3 +233,42 @@ async def manual_search_issue(
         "components/issue_row.html",
         {"issue": issue}
     )
+
+
+@router.post("/notifications/test", response_class=JSONResponse)
+async def test_notification():
+    """
+    Send a test notification to all configured Apprise services.
+    Returns JSON indicating success or failure so users can verify
+    their APPRISE_URLS setup without needing to trigger a real grab.
+    """
+    notifier = get_notifier()
+    if notifier is None:
+        return JSONResponse(
+            status_code=200,
+            content={"ok": False, "message": "No notification URLs configured (APPRISE_URLS is empty)."}
+        )
+
+    try:
+        success = await notifier.notify(
+            title="Mylar3 Test Notification 🧠",
+            body="Notification system is working correctly! Your Apprise setup is configured.",
+            notify_type="success",
+        )
+        if success:
+            logger.info("[Notifications] Test notification sent successfully.")
+            return JSONResponse(
+                status_code=200,
+                content={"ok": True, "message": "Test notification sent successfully."}
+            )
+        else:
+            return JSONResponse(
+                status_code=200,
+                content={"ok": False, "message": "Notification was dispatched but one or more services reported failure."}
+            )
+    except Exception as exc:
+        logger.error(f"[Notifications] Test notification failed: {exc}")
+        return JSONResponse(
+            status_code=500,
+            content={"ok": False, "message": f"Exception: {exc}"}
+        )

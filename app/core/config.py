@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     TRANSMISSION_PASSWORD: str = ""
     TRANSMISSION_DIRECTORY: str = ""
 
+    # Notification settings (Apprise)
+    # Comma-separated list of Apprise notification URLs.
+    # Examples: discord://webhook_id/token, tgram://bot_token/chat_id
+    # Full URL list: https://github.com/caronc/apprise/wiki
+    APPRISE_URLS: str = ""
+    NOTIFY_ON_SNATCH: bool = True    # Notify when a download is successfully submitted
+    NOTIFY_ON_FAILURE: bool = True   # Notify when a grab fails after all retries
+    NOTIFY_ON_NEW_ISSUES: bool = True  # Notify when db_sync discovers new issues
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"

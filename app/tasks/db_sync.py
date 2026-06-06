@@ -12,10 +12,12 @@ from typing import List, Optional
 
 from sqlmodel import select
 
+from app.core.config import settings
 from app.core.logger import logger
 from app.core.sync_db import get_sync_session
 from app.models.comic import Comic
 from app.models.issue import Issue
+from app.notifications.factory import get_notifier
 from app.services.cv_api import ComicVineClient
 from app.worker import celery_app
 
@@ -125,6 +127,26 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
         f"[DB Sync] Sync complete for comic_id={comic_id}: "
         f"updated={updated}, new_issues={new_issues_added}."
     )
+
+    # Fire new-issue notification after the session has closed
+    if new_issues_added > 0 and settings.NOTIFY_ON_NEW_ISSUES:
+        notifier = get_notifier()
+        if notifier:
+            noun = "issue" if new_issues_added == 1 else "issues"
+            try:
+                asyncio.run(
+                    notifier.notify(
+                        title="New Issues Found 📥",
+                        body=(
+                            f"{new_issues_added} new {noun} added for "
+                            f"'{comic.comic_name}' and marked Wanted."
+                        ),
+                        notify_type="info",
+                    )
+                )
+            except Exception as exc:
+                logger.error(f"[DB Sync] Notification failed: {exc}")
+
     return {
         "comic_id": comic_id,
         "updated": updated,

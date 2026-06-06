@@ -16,6 +16,9 @@ pydantic-settings>=2.2.1
 celery>=5.3.6
 redis>=5.0.3
 
+# Notifications
+apprise>=1.7.6
+
 # Legacy Porting / General Helpers
 requests>=2.31.0
 beautifulsoup4>=4.12.3
