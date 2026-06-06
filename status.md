@@ -78,8 +78,15 @@ This file tracks the current features, environment status, and pending/completed
   - [x] Integrated FlareSolverr bypass routing and JDownloader2 (JD2) API submission
   - [x] Integrated DDL fallback search inside `search_issue` loop
   - [x] Added automated unit tests in `tests/test_ddl.py`
+- [x] Implement Failed Download Handling & Blacklisting (Phase 14)
+  - [x] Created `FailedRelease` SQLModel schema and database mappings
+  - [x] Added release URL and title-based blacklisting filters inside `search_issue` loop
+  - [x] Added submission-failure blacklisting hook in Celery task `grab_issue`
+  - [x] Added API status tracking for post-submission downloader failures in `/api/postprocess` and post-processor service
+  - [x] Added reference file `unused_functionality.md` covering legacy Reading Lists and CBR2CBZ conversion
+  - [x] Added 4 passing unit tests covering all blacklisting, retry, and notification mechanics
 
 ## Next Steps
 - Verify visual styling of weekly/import templates under active deployment.
 - Perform user testing with active OPDS reading clients (e.g. Chunky, Panels).
-- Maintain project rules and monitor scraper selectors for structural updates on GetComics.
+- Monitor search and downloader client logs for blacklisting efficiency.
