@@ -13,6 +13,7 @@ This file tracks the current features, environment status, and pending/completed
   - Moved legacy application folders (`mylar/`, `lib/`, `tests/`, etc.) and databases/configs to `.old/`.
   - Kept only virtual environment (`.venv`), rule standard configs, git files, and `status.md` in the root workspace.
   - Performed a comprehensive settings audit comparing the legacy codebase's settings definitions with the new FastAPI database/cache settings schema, capturing the mapping in a comparison report.
+  - Performed a codebase-wide audit and style cleanup, fixing synchronous session querying, metadata sync object iteration errors, and nested lazy imports.
 
 ## Features Tracking
 - [x] Archive legacy codebase to [`.old/`](file:///E:/Coding Projects/mylar3/.old)
