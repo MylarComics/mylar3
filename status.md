@@ -47,12 +47,14 @@ This file tracks the current features, environment status, and pending/completed
   - [x] `POST /api/notifications/test` — test endpoint for verifying Apprise setup
   - [x] 14 passing unit tests (118 total, 0 failures)
 - [x] Implement Settings Management (Phase 8)
-  - [x] `app/models/settings.py` — `SystemSettings` database table using SQLModel
-  - [x] `app/core/config.py` — extended settings with dynamic local filesystem cache reloading (`check_and_reload()`)
+  - [x] `app/models/settings.py` — `SystemSettings` database table using SQLModel (fully expanded with all remaining legacy settings)
+  - [x] `app/core/config.py` — extended settings with dynamic local filesystem cache reloading (`check_and_reload()`) and environment variable fallbacks
   - [x] `app/services/settings_service.py` — DB seeding, cache serialization (`cache/settings_cache.json`), and atomic update functions
-  - [x] `app/templates/settings.html` — premium dark-themed configuration dashboard with tabbed HTMX sections, downloader client filters, and interactive toasts
+  - [x] `app/templates/settings.html` — premium dark-themed configuration dashboard with tabbed HTMX sections, advanced downloader configs, new tabs (Torrents, Metatagging, Weekly pulls, Direct downloads), and interactive toasts
   - [x] Registered routes: `GET /settings` (web router) & `POST /api/settings` (API router)
   - [x] 4 passing unit tests (122 total, 0 failures)
+  - [x] Completed manual settings verification audit using browser automation and verified saving capabilities
+
 
 ## Next Steps
 - Run further user acceptance testing / manual flows in a staging environment.
