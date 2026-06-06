@@ -27,6 +27,37 @@ class Settings(BaseSettings):
     NEWZNAB_PROVIDERS: str = ""
     TORZNAB_PROVIDERS: str = ""
 
+    # Scheduler settings
+    SEARCH_INTERVAL_MINUTES: int = 60   # How often to run the wanted-issue search loop
+    GRAB_ON_MATCH: bool = True           # Auto-submit best result to downloader on match
+    CV_SYNC_INTERVAL_HOURS: int = 24    # How often to re-sync series metadata from ComicVine
+
+    # Downloader settings
+    DOWNLOADER_TYPE: str = "none"  # sabnzbd, nzbget, qbittorrent, transmission, none
+    
+    # SABnzbd
+    SABNZBD_URL: str = "http://localhost:8080"
+    SABNZBD_API_KEY: str = ""
+    SABNZBD_CATEGORY: str = "comics"
+    
+    # NZBGet
+    NZBGET_URL: str = "http://localhost:6789"
+    NZBGET_USERNAME: str = ""
+    NZBGET_PASSWORD: str = ""
+    NZBGET_CATEGORY: str = "comics"
+    
+    # qBittorrent
+    QBITTORRENT_URL: str = "http://localhost:8080"
+    QBITTORRENT_USERNAME: str = "admin"
+    QBITTORRENT_PASSWORD: str = "adminadmin"
+    QBITTORRENT_CATEGORY: str = "comics"
+    
+    # Transmission
+    TRANSMISSION_URL: str = "http://localhost:9091"
+    TRANSMISSION_USERNAME: str = ""
+    TRANSMISSION_PASSWORD: str = ""
+    TRANSMISSION_DIRECTORY: str = ""
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"

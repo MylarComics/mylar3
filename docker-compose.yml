@@ -47,7 +47,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     container_name: mylar3-worker
-    command: celery -A app.worker.celery_app worker --loglevel=info
+    command: celery -A app.worker.celery_app worker --loglevel=info -Q default,grabs --concurrency=4
     restart: unless-stopped
     environment:
       - SECRET_KEY=${SECRET_KEY:-placeholder_secret_key}
@@ -55,6 +55,29 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-mylar}:${POSTGRES_PASSWORD:-mylarpass}@postgres:5432/${POSTGRES_DB:-mylar_new}
       - REDIS_URL=redis://redis:6379/0
       - COMICVINE_API_KEY=${COMICVINE_API_KEY}
+      - DOWNLOADER_TYPE=${DOWNLOADER_TYPE:-none}
+    volumes:
+      - .:/app
+      - config_data:/config
+    depends_on:
+      - postgres
+      - redis
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mylar3-beat
+    command: celery -A app.worker.celery_app beat --loglevel=info --scheduler celery.beat.PersistentScheduler
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-placeholder_secret_key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-mylar}:${POSTGRES_PASSWORD:-mylarpass}@postgres:5432/${POSTGRES_DB:-mylar_new}
+      - REDIS_URL=redis://redis:6379/0
+      - COMICVINE_API_KEY=${COMICVINE_API_KEY}
+      - SEARCH_INTERVAL_MINUTES=${SEARCH_INTERVAL_MINUTES:-60}
+      - GRAB_ON_MATCH=${GRAB_ON_MATCH:-true}
     volumes:
       - .:/app
       - config_data:/config
