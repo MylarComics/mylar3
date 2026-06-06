@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opds="http://opds-spec.org/2010/catalog"
+      xmlns:pse="http://vaemendis.net/opds-pse/ns"
+      xmlns:dcterms="http://purl.org/dc/terms/">
+  <title>{{ title }}</title>
+  <id>{{ id }}</id>
+  <updated>{{ updated }}</updated>
+  <author>
+    <name>Mylar3 Server</name>
+  </author>
+  
+  {% for link in links %}
+  <link rel="{{ link.rel }}" href="{{ link.href }}" type="{{ link.type }}" {% if link.title %}title="{{ link.title }}"{% endif %}/>
+  {% endfor %}
+  
+  {% for entry in entries %}
+  <entry>
+    <title>{{ entry.title }}</title>
+    <id>{{ entry.id }}</id>
+    <updated>{{ entry.updated }}</updated>
+    <content type="text">{{ entry.content or "" }}</content>
+    
+    {% if entry.author %}
+    <author>
+      <name>{{ entry.author }}</name>
+    </author>
+    {% endif %}
+    
+    {% if entry.rel == 'file' %}
+    <link href="{{ entry.href }}" rel="http://opds-spec.org/acquisition" type="application/octet-stream" />
+    {% else %}
+    <link href="{{ entry.href }}" rel="{{ entry.rel }}" type="application/atom+xml; profile=opds-catalog; kind={{ entry.kind }}" />
+    {% endif %}
+    
+    {% if entry.stream %}
+    <link href="{{ entry.stream }}" rel="http://vaemendis.net/opds-pse/stream" type="image/jpeg" pse:count="{{ entry.pse_count or 0 }}" />
+    {% endif %}
+    
+    {% if entry.thumbnail %}
+    <link href="{{ entry.thumbnail }}" type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" />
+    {% endif %}
+  </entry>
+  {% endfor %}
+</feed>

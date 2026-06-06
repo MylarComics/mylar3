@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -277,6 +278,29 @@ async def test_notification():
             content={"ok": False, "message": f"Exception: {exc}"}
         )
 
+@router.post("/postprocess")
+async def api_postprocess(
+    folder_path: str = Form(...),
+    nzb_name: Optional[str] = Form(None)
+):
+    from app.tasks.post_process import post_process_folder
+    task = post_process_folder.delay(folder_path, nzb_name)
+    return {"ok": True, "task_id": task.id}
+
+@router.post("/weekly/sync")
+async def sync_weekly_releases(
+    week: Optional[int] = Form(None),
+    year: Optional[int] = Form(None),
+    session: AsyncSession = Depends(get_session)
+):
+    from app.services.weekly_pull import WeeklyPullService
+    service = WeeklyPullService(session)
+    try:
+        res = await service.fetch_and_sync(week, year)
+        return res
+    finally:
+        await service.close()
+
 @router.post("/settings")
 async def update_settings(request: Request, session: AsyncSession = Depends(get_session)):
     form_data = await request.form()
@@ -290,3 +314,22 @@ async def update_settings(request: Request, session: AsyncSession = Depends(get_
         return JSONResponse({"ok": True})
     else:
         return JSONResponse({"ok": False, "message": "Failed to save settings to database"})
+
+@router.post("/import/scan", response_class=HTMLResponse)
+async def api_import_scan(
+    request: Request,
+    scan_dir: str = Form(...),
+    session: AsyncSession = Depends(get_session)
+):
+    from app.services.library_sync import LibrarySyncService
+    service = LibrarySyncService(session)
+    res = await service.scan_and_sync_library(scan_dir)
+    
+    return templates.TemplateResponse(
+        request,
+        "components/import_results.html",
+        {
+            "synced_count": res["synced_files_count"],
+            "candidates": res["unmatched_candidates"]
+        }
+    )

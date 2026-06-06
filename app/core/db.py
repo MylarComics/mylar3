@@ -19,6 +19,7 @@ async def init_db():
             from app.models.comic import Comic
             from app.models.issue import Issue
             from app.models.settings import SystemSettings
+            from app.models.weekly import WeeklyPullList
         except ImportError:
             pass
         await conn.run_sync(SQLModel.metadata.create_all)

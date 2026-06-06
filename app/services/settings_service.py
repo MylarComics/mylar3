@@ -28,9 +28,19 @@ async def initialize_settings(session: AsyncSession) -> None:
         
         db_settings = SystemSettings(id=1, **settings_data)
         session.add(db_settings)
-        await session.commit()
-        await session.refresh(db_settings)
-        logger.info("System settings database table initialized successfully.")
+        try:
+            await session.commit()
+            await session.refresh(db_settings)
+            logger.info("System settings database table initialized successfully.")
+        except Exception as integrity_err:
+            await session.rollback()
+            # Try fetching the concurrently inserted row
+            stmt = select(SystemSettings).where(SystemSettings.id == 1)
+            result = await session.execute(stmt)
+            db_settings = result.scalars().first()
+            if not db_settings:
+                raise integrity_err
+            logger.info("System settings was concurrently initialized, using existing row.")
     
     # Always write settings cache file on startup to make sure it matches DB
     await sync_db_to_cache(db_settings)

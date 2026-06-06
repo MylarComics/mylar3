@@ -1,0 +1,44 @@
+<div style="background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem;">
+    <div style="background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 2rem; font-weight: 500;">
+        Successfully matched and synced {{ synced_count }} file(s) to your active watchlist issues!
+    </div>
+
+    <div class="section-title" style="margin-bottom: 1.5rem;">
+        <h3>Unmatched Series Candidates Found on Disk</h3>
+        <span style="font-size: 0.9rem; color: var(--text-secondary);">These series are not in your watchlist yet. Click Search to find them on ComicVine.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for candidate in candidates %}
+        <div style="border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem 1.5rem; background-color: var(--bg-main);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div>
+                    <h4 style="margin: 0 0 0.25rem 0; font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">
+                        {{ candidate.series_name }} {% if candidate.year %}({{ candidate.year }}){% endif %}
+                    </h4>
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
+                        {{ candidate.files_count }} file(s) found
+                    </span>
+                </div>
+                
+                <button class="btn btn-secondary btn-sm"
+                        hx-get="/api/search-cv?q={{ candidate.series_name }}"
+                        hx-target="#search-results-{{ loop.index }}"
+                        hx-indicator="#search-indicator-{{ loop.index }}"
+                        style="font-weight: 600; cursor: pointer;">
+                    Search ComicVine
+                </button>
+            </div>
+            
+            <div id="search-indicator-{{ loop.index }}" class="htmx-indicator" style="margin-top: 1rem; color: var(--accent-cyan); font-size: 0.85rem;">
+                Searching ComicVine...
+            </div>
+            <div id="search-results-{{ loop.index }}" style="margin-top: 1.25rem; max-width: 100%;"></div>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary); font-style: italic;">
+            No unmatched series found in the directory.
+        </div>
+        {% endfor %}
+    </div>
+</div>

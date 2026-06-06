@@ -174,6 +174,10 @@ class Settings(BaseSettings):
     # Transmission
     TRANSMISSION_HOST: str = ""
 
+    # OPDS Server Settings
+    OPDS_ENABLE: bool = True
+    OPDS_PAGESIZE: int = 30
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"

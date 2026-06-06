@@ -21,6 +21,8 @@ celery_app = Celery(
         "app.tasks.search_wanted",
         "app.tasks.grab_issue",
         "app.tasks.db_sync",
+        "app.tasks.post_process",
+        "app.tasks.weekly_pull",
     ],
 )
 
@@ -55,6 +57,11 @@ celery_app.conf.update(
         "search-wanted-issues": {
             "task": "tasks.search_wanted",
             "schedule": settings.SEARCH_INTERVAL_MINUTES * 60,  # seconds
+            "options": {"queue": "default"},
+        },
+        "sync-weekly-pull-list": {
+            "task": "tasks.sync_weekly_pull_list",
+            "schedule": crontab(hour=0, minute=0), # daily at midnight
             "options": {"queue": "default"},
         },
     },

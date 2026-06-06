@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.db import init_db
 from app.core.logger import logger, log_memory
-from app.routers import web, api
+from app.routers import web, api, opds
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,4 +46,5 @@ app.mount("/cache", StaticFiles(directory=settings.CACHE_DIR), name="cache")
 # Register Routers
 app.include_router(web.router)
 app.include_router(api.router)
+app.include_router(opds.router)
 

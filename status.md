@@ -54,8 +54,32 @@ This file tracks the current features, environment status, and pending/completed
   - [x] Registered routes: `GET /settings` (web router) & `POST /api/settings` (API router)
   - [x] 4 passing unit tests (122 total, 0 failures)
   - [x] Completed manual settings verification audit using browser automation and verified saving capabilities
-
+- [x] Implement Post-Processing & Metatagging (Phase 9)
+  - [x] Added `location` column to PostgreSQL `issue` table
+  - [x] Created `PostProcessorService` (`app/services/post_processor.py`) for filename parsing, path formatting, moving files, and triggering ComicTagger CLI
+  - [x] Created Celery task `post_process_folder` and registered manual `/api/postprocess` endpoint
+  - [x] Added automated unit tests in `tests/test_post_processor.py`
+- [x] Implement Weekly Pull Lists (Phase 10)
+  - [x] Created `WeeklyPullList` SQLModel and registered database schemas
+  - [x] Created `WeeklyPullService` (`app/services/weekly_pull.py`) fetching Diamond releases via LOCG Walksoftly proxy, auto-matching watchlist, and seeding Wanted issues
+  - [x] Added Daily Celery Beat sync task and dashboard web router at `/weekly` (Jinja2 template `weekly.html`)
+  - [x] Added automated unit tests in `tests/test_weekly_pull.py`
+- [x] Implement Library Import (Phase 11)
+  - [x] Created `LibrarySyncService` (`app/services/library_sync.py`) walking directories, parsing metadata, mapping to ComicVine, and linking issues
+  - [x] Exposed `/api/import/scan` endpoint with inline search UI resolvers (HTMX)
+  - [x] Added automated unit tests in `tests/test_library_sync.py`
+- [x] Implement OPDS Catalog Server (Phase 12)
+  - [x] Created `opds` router in `app/routers/opds.py` supporting OPDS 1.0/1.2 catalog navigation (Recent Arrivals, Publishers, All Titles, Series)
+  - [x] Implemented OPDS Page Streaming Extension (PSE) 1.0 dynamic image/thumbnail streaming and direct file delivery
+  - [x] Registered router in `app/main.py`
+  - [x] Added automated unit tests in `tests/test_opds.py`
+- [x] Implement Direct Download Links (DDL) (Phase 13)
+  - [x] Created `DDLService` (`app/services/ddl.py`) supporting GetComics scraper parsing and direct download streams
+  - [x] Integrated FlareSolverr bypass routing and JDownloader2 (JD2) API submission
+  - [x] Integrated DDL fallback search inside `search_issue` loop
+  - [x] Added automated unit tests in `tests/test_ddl.py`
 
 ## Next Steps
-- Run further user acceptance testing / manual flows in a staging environment.
-- Add additional comic book provider scraper clients or custom file layout rules as requested.
+- Verify visual styling of weekly/import templates under active deployment.
+- Perform user testing with active OPDS reading clients (e.g. Chunky, Panels).
+- Maintain project rules and monitor scraper selectors for structural updates on GetComics.

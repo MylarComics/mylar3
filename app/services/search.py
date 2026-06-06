@@ -231,7 +231,7 @@ async def search_issue(comic: Comic, issue: Issue) -> List[SearchResultItem]:
     Runs validation filtering on title strings using parsing.py.
     """
     indexers = get_all_indexers()
-    if not indexers:
+    if not indexers and not (settings.ENABLE_DDL or settings.ENABLE_GETCOMICS):
         logger.warning("[Search] No search providers/indexers are configured.")
         return []
 
@@ -262,7 +262,24 @@ async def search_issue(comic: Comic, issue: Issue) -> List[SearchResultItem]:
             if is_title_match(parsed, comic, issue):
                 seen_urls.add(candidate.download_url)
                 matched_results.append(candidate)
-                
+
+    # DDL Fallback Search
+    if not matched_results and (settings.ENABLE_DDL or settings.ENABLE_GETCOMICS):
+        logger.info("[Search] No indexer matches found. Querying GetComics DDL fallback...")
+        try:
+            from app.services.ddl import DDLService
+            ddl_service = DDLService()
+            ddl_candidates = await ddl_service.search_issue(comic, issue)
+            for candidate in ddl_candidates:
+                if candidate.download_url in seen_urls:
+                    continue
+                parsed = parse_filename(candidate.title)
+                if is_title_match(parsed, comic, issue):
+                    seen_urls.add(candidate.download_url)
+                    matched_results.append(candidate)
+        except Exception as e:
+            logger.error(f"[Search] DDL fallback search failed: {e}")
+                 
     # Sort matches by file size (largest first) to prioritize higher-quality releases
     matched_results.sort(key=lambda x: x.size, reverse=True)
     return matched_results

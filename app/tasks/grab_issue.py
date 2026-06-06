@@ -59,26 +59,71 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
         f"[Grab] Processing grab for issue {issue_id}: '{title}' from {provider_name}"
     )
 
-    # Resolve the configured downloader
-    downloader = get_downloader()
-    if downloader is None:
-        logger.warning(
-            f"[Grab] No downloader configured (DOWNLOADER_TYPE=none). "
-            f"Skipping grab for issue {issue_id}."
-        )
-        return {"issue_id": issue_id, "status": "Skipped"}
-
-    # Submit the download
-    try:
-        job_id: Optional[str] = asyncio.run(
-            downloader.add_download(
-                url_or_filepath=download_url,
-                title=title,
+    job_id = None
+    if result.get("type") == "ddl":
+        from app.services.ddl import DDLService
+        ddl_service = DDLService()
+        try:
+            direct_link = asyncio.run(ddl_service.resolve_download_link(download_url))
+        except Exception as e:
+            logger.error(f"[Grab] Failed resolving download link for DDL: {e}")
+            direct_link = None
+            
+        if direct_link:
+            if settings.JD2_ENABLE and settings.JD2_URL:
+                from app.services.ddl import JDownloader2
+                jd2 = JDownloader2(settings.JD2_URL)
+                package_name = f"{title} - {issue_id}"
+                logger.info(f"[Grab] Sending DDL link to JDownloader2 package {package_name}")
+                try:
+                    jd_res = asyncio.run(jd2.submit({direct_link: "DEFAULT"}, package_name))
+                    if jd_res.get("status"):
+                        job_id = jd_res["jobid"]
+                    else:
+                        logger.error(f"[Grab] JDownloader2 submission failed: {jd_res.get('error')}")
+                except Exception as e:
+                    logger.error(f"[Grab] JDownloader2 error: {e}")
+            else:
+                import os
+                temp_dir = os.path.join("cache", "ddl", issue_id)
+                clean_url = direct_link.split("?")[0].rstrip("/")
+                filename = os.path.basename(clean_url)
+                if not filename or not filename.endswith((".cbz", ".cbr", ".pdf", ".cb7")):
+                    filename = f"{title}.cbz"
+                
+                dest_filepath = os.path.join(temp_dir, filename)
+                logger.info(f"[Grab] Downloading direct link to {dest_filepath}")
+                try:
+                    download_ok = asyncio.run(ddl_service.download_file(direct_link, dest_filepath))
+                    if download_ok:
+                        from app.tasks.post_process import post_process_folder
+                        post_process_folder.delay(temp_dir)
+                        job_id = f"ddl-{issue_id}"
+                except Exception as e:
+                    logger.error(f"[Grab] Direct DDL download failed: {e}")
+        else:
+            logger.error(f"[Grab] Could not resolve any direct links from post page {download_url}")
+    else:
+        # Resolve the configured downloader
+        downloader = get_downloader()
+        if downloader is None:
+            logger.warning(
+                f"[Grab] No downloader configured (DOWNLOADER_TYPE=none). "
+                f"Skipping grab for issue {issue_id}."
             )
-        )
-    except Exception as exc:
-        logger.error(f"[Grab] Downloader raised exception for issue {issue_id}: {exc}")
-        job_id = None
+            return {"issue_id": issue_id, "status": "Skipped"}
+
+        # Submit the download
+        try:
+            job_id = asyncio.run(
+                downloader.add_download(
+                    url_or_filepath=download_url,
+                    title=title,
+                )
+            )
+        except Exception as exc:
+            logger.error(f"[Grab] Downloader raised exception for issue {issue_id}: {exc}")
+            job_id = None
 
     if not job_id:
         logger.error(

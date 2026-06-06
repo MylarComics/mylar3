@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Releases - Mylar3{% endblock %}
+
+{% block content %}
+<div class="section-title" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <h2>Weekly Releases</h2>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="/weekly?week={{ prev_week }}&year={{ prev_year }}{% if selected_pub %}&publisher={{ selected_pub }}{% endif %}" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none;">← Prev Week</a>
+        <span class="badge badge-active" style="padding: 0.5rem 1rem; font-size: 0.9rem; background-color: var(--accent-cyan); color: var(--bg-main); font-weight: 600; border-radius: 8px;">Week {{ week }} ({{ year }})</span>
+        <a href="/weekly?week={{ next_week }}&year={{ next_year }}{% if selected_pub %}&publisher={{ selected_pub }}{% endif %}" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; text-decoration: none;">Next Week →</a>
+    </div>
+</div>
+
+<div style="background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1.5rem; align-items: center;">
+    <!-- Filter Form -->
+    <form method="GET" action="/weekly" style="display: flex; gap: 0.75rem; align-items: center; margin: 0;">
+        <input type="hidden" name="week" value="{{ week }}">
+        <input type="hidden" name="year" value="{{ year }}">
+        <label for="publisher" style="font-size: 0.9rem; font-weight: 500; color: var(--text-secondary);">Publisher:</label>
+        <select name="publisher" id="publisher" style="width: 240px; padding: 0.5rem 1rem; background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; outline: none; cursor: pointer;" onchange="this.form.submit()">
+            <option value="">All Publishers</option>
+            {% for pub in publishers %}
+                <option value="{{ pub }}" {% if selected_pub == pub %}selected{% endif %}>{{ pub }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!-- Sync Action -->
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <button class="btn btn-primary"
+                hx-post="/api/weekly/sync"
+                hx-vals='{"week": {{ week }}, "year": {{ year }}}'
+                hx-target="body"
+                hx-indicator="#sync-indicator"
+                style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.6rem 1.2rem; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Refresh Pull List</span>
+        </button>
+        <span id="sync-indicator" class="htmx-indicator" style="color: var(--accent-cyan); font-size: 0.9rem; font-weight: 500;">Syncing releases...</span>
+    </div>
+</div>
+
+<div class="card-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+    {% for release in releases %}
+    <div style="background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; transition: border-color 0.2s ease, transform 0.2s ease;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span class="badge" style="font-size: 0.7rem; text-transform: uppercase; background-color: rgba(148, 163, 184, 0.1); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; border: 1px solid var(--border-color);">{{ release.publisher }}</span>
+                {% if release.format %}
+                <span class="badge" style="font-size: 0.65rem; background-color: rgba(6, 182, 212, 0.1); color: var(--accent-cyan); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">{{ release.format }}</span>
+                {% endif %}
+            </div>
+            <h3 style="font-size: 1.05rem; font-weight: 600; margin: 0; color: var(--text-primary);">
+                {{ release.comic }} #{{ release.issue }}
+            </h3>
+            {% if release.extra and release.extra != release.format %}
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">{{ release.extra }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            {% if release.status == 'Wanted' %}
+                <span class="badge" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem;">On Watchlist</span>
+            {% elif release.comic_id %}
+                <button class="btn btn-secondary btn-sm"
+                        hx-post="/api/comics/add"
+                        hx-vals='{"comic_id": "{{ release.comic_id }}"}'
+                        hx-swap="outerHTML"
+                        style="padding: 0.4rem 0.8rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                    + Watch Series
+                </button>
+            {% else %}
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No Comic ID</span>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 5rem 1.5rem; background-color: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-secondary);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1.5rem; opacity: 0.6;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p style="font-size: 1.15rem; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary);">No release schedule found for this week.</p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Download the latest releases list from the League of Comic Geeks proxy server.</p>
+        <button class="btn btn-primary"
+                hx-post="/api/weekly/sync"
+                hx-vals='{"week": {{ week }}, "year": {{ year }}}'
+                hx-target="body"
+                hx-indicator="#sync-indicator-empty"
+                style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.6rem 1.2rem; cursor: pointer; margin: 0 auto;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Refresh Pull List</span>
+        </button>
+        <div style="margin-top: 1rem;">
+            <span id="sync-indicator-empty" class="htmx-indicator" style="color: var(--accent-cyan); font-size: 0.9rem;">Syncing releases...</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

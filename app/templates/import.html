@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Import Library - Mylar3{% endblock %}
+
+{% block content %}
+<div class="section-title" style="margin-bottom: 2rem;">
+    <h2>Import & Sync Library</h2>
+    <span style="font-size: 0.9rem; color: var(--text-secondary);">Scan your directories to link existing files or import new series</span>
+</div>
+
+<div style="background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+    <form hx-post="/api/import/scan"
+          hx-target="#import-results-container"
+          hx-indicator="#import-indicator"
+          style="display: flex; flex-direction: column; gap: 1.25rem;">
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="scan_dir" style="font-size: 0.95rem; font-weight: 500; color: var(--text-secondary);">Target Library Directory</label>
+            <input type="text" 
+                   id="scan_dir" 
+                   name="scan_dir" 
+                   class="search-input" 
+                   style="width: 100%; box-sizing: border-box;"
+                   placeholder="Enter absolute directory path to scan (e.g., /config/comics or E:\Downloads)..." 
+                   required>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-weight: 600; cursor: pointer;">
+                Scan & Sync Directory
+            </button>
+            <span id="import-indicator" class="htmx-indicator" style="color: var(--accent-cyan); font-size: 0.9rem; font-weight: 500;">
+                Scanning files & syncing database... Please wait, this might take a moment.
+            </span>
+        </div>
+    </form>
+</div>
+
+<div id="import-results-container"></div>
+{% endblock %}

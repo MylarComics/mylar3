@@ -9,3 +9,4 @@ class Issue(SQLModel, table=True):
     issue_name: Optional[str] = None
     release_date: Optional[str] = None
     status: str = Field(default="Skipped")  # Wanted, Snatched, Downloaded, Skipped
+    location: Optional[str] = None
