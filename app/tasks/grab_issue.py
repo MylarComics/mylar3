@@ -50,6 +50,7 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
     Returns:
         {"issue_id": str, "status": "Snatched" | "Failed" | "Skipped"}
     """
+    settings.check_and_reload()
     title: str = result.get("title", "Unknown")
     download_url: str = result.get("download_url", "")
     provider_name: str = result.get("provider_name", "Unknown")

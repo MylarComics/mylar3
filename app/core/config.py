@@ -1,4 +1,9 @@
+import os
+import json
+import logging
 from pydantic_settings import BaseSettings
+
+SETTINGS_CACHE_FILE = os.path.join("cache", "settings_cache.json")
 
 class Settings(BaseSettings):
     MYLAR_PORT: int = 8090
@@ -71,5 +76,26 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "extra": "ignore"
     }
+
+    _last_loaded_mtime: float = 0.0
+
+    def reload_from_cache(self) -> None:
+        if os.path.exists(SETTINGS_CACHE_FILE):
+            try:
+                with open(SETTINGS_CACHE_FILE, "r") as f:
+                    data = json.load(f)
+                for k, v in data.items():
+                    if hasattr(self, k):
+                        setattr(self, k, v)
+                self._last_loaded_mtime = os.path.getmtime(SETTINGS_CACHE_FILE)
+                logging.getLogger("mylar").info("Settings cache loaded/reloaded from disk.")
+            except Exception as e:
+                logging.getLogger("mylar").error(f"Failed to reload settings cache: {e}")
+
+    def check_and_reload(self) -> None:
+        if os.path.exists(SETTINGS_CACHE_FILE):
+            mtime = os.path.getmtime(SETTINGS_CACHE_FILE)
+            if mtime > self._last_loaded_mtime:
+                self.reload_from_cache()
 
 settings = Settings()

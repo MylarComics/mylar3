@@ -8,7 +8,12 @@ from app.core.db import get_session
 from app.models.comic import Comic
 from app.models.issue import Issue
 
-router = APIRouter()
+from app.core.config import settings
+
+def check_settings():
+    settings.check_and_reload()
+
+router = APIRouter(dependencies=[Depends(check_settings)])
 templates = Jinja2Templates(directory="app/templates")
 
 def get_numeric_issue_number(num_str: str) -> float:
@@ -83,4 +88,12 @@ async def read_comic_detail(
         request,
         "detail.html",
         {"comic": comic, "issues": issues, "active_page": "dashboard"}
+    )
+
+@router.get("/settings", response_class=HTMLResponse)
+async def read_settings_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {"settings": settings, "active_page": "settings"}
     )

@@ -36,6 +36,7 @@ def search_wanted(self) -> dict:
     Returns a summary dict for result tracking:
         {"scanned": int, "matched": int, "grabbed": int}
     """
+    settings.check_and_reload()
     logger.info("[Search Runner] Starting wanted-issue search loop.")
     scanned = 0
     matched = 0

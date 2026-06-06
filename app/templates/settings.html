@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Mylar3{% endblock %}
+
+{% block content %}
+<div class="section-title">
+    <h2>System Settings</h2>
+    <span class="htmx-indicator" id="indicator" style="font-size: 0.9rem; color: var(--text-secondary);">
+        Saving settings...
+    </span>
+</div>
+
+<form hx-post="/api/settings" hx-swap="none" hx-on::after-request="handleSaveResult(event)" id="settings-form">
+    <div class="settings-container">
+        <!-- Sidebar Navigation Tabs -->
+        <aside class="settings-sidebar">
+            <button type="button" class="tab-btn active" onclick="showTab('comicvine', event)">ComicVine</button>
+            <button type="button" class="tab-btn" onclick="showTab('scheduler', event)">Search & Scheduler</button>
+            <button type="button" class="tab-btn" onclick="showTab('downloaders', event)">Downloaders</button>
+            <button type="button" class="tab-btn" onclick="showTab('notifications', event)">Notifications</button>
+            <button type="button" class="tab-btn" onclick="showTab('folders', event)">Folders & Files</button>
+        </aside>
+
+        <!-- Main Settings Pane -->
+        <main class="settings-content">
+            <!-- ComicVine Tab -->
+            <div id="comicvine" class="tab-content">
+                <h3>ComicVine API Configuration</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure ComicVine settings to fetch volume and issue metadata.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" for="COMICVINE_API_KEY">ComicVine API Key</label>
+                    <input class="form-input" type="text" id="COMICVINE_API_KEY" name="COMICVINE_API_KEY" value="{{ settings.COMICVINE_API_KEY }}" placeholder="Enter API Key">
+                    <span class="form-help">Get a key from <a href="https://comicvine.gamespot.com/api/" target="_blank">ComicVine API Page</a>.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="COMICVINE_API_URL">ComicVine API URL</label>
+                    <input class="form-input" type="url" id="COMICVINE_API_URL" name="COMICVINE_API_URL" value="{{ settings.COMICVINE_API_URL }}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="CVAPI_RATE">Rate Limit (Seconds)</label>
+                        <input class="form-input" type="number" step="0.1" id="CVAPI_RATE" name="CVAPI_RATE" value="{{ settings.CVAPI_RATE }}">
+                        <span class="form-help">Minimum delay between API calls (recommended: 2.0).</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="CV_USER_AGENT">User Agent</label>
+                        <input class="form-input" type="text" id="CV_USER_AGENT" name="CV_USER_AGENT" value="{{ settings.CV_USER_AGENT }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-checkbox-label">
+                        <input class="form-checkbox" type="checkbox" id="CV_VERIFY" name="CV_VERIFY" {% if settings.CV_VERIFY %}checked{% endif %}>
+                        Verify SSL Certificates
+                    </label>
+                </div>
+            </div>
+
+            <!-- Search & Scheduler Tab -->
+            <div id="scheduler" class="tab-content" style="display: none;">
+                <h3>Search & Scheduler</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure automation intervals, search loop settings, and indexer URLs.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="SEARCH_INTERVAL_MINUTES">Wanted Search Interval (Minutes)</label>
+                        <input class="form-input" type="number" id="SEARCH_INTERVAL_MINUTES" name="SEARCH_INTERVAL_MINUTES" value="{{ settings.SEARCH_INTERVAL_MINUTES }}">
+                        <span class="form-help">How often the Celery Beat scheduler scans for Wanted issues. (Requires container restart to apply schedule interval change).</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="CV_SYNC_INTERVAL_HOURS">Metadata Sync Interval (Hours)</label>
+                        <input class="form-input" type="number" id="CV_SYNC_INTERVAL_HOURS" name="CV_SYNC_INTERVAL_HOURS" value="{{ settings.CV_SYNC_INTERVAL_HOURS }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-checkbox-label">
+                        <input class="form-checkbox" type="checkbox" id="GRAB_ON_MATCH" name="GRAB_ON_MATCH" {% if settings.GRAB_ON_MATCH %}checked{% endif %}>
+                        Auto-Grab on Match
+                    </label>
+                    <span class="form-help">Automatically submit matching releases to downloaders when found during automated search.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="NEWZNAB_PROVIDERS">Newznab Providers (Usenet)</label>
+                    <textarea class="form-input" id="NEWZNAB_PROVIDERS" name="NEWZNAB_PROVIDERS" rows="3" placeholder="Name|URL|APIKey (one per line)">{{ settings.NEWZNAB_PROVIDERS }}</textarea>
+                    <span class="form-help">Format: <code>ProviderName|https://api.domain.com|your_api_key</code>. Add one provider per line.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="TORZNAB_PROVIDERS">Torznab Providers (Torrents)</label>
+                    <textarea class="form-input" id="TORZNAB_PROVIDERS" name="TORZNAB_PROVIDERS" rows="3" placeholder="Name|URL|APIKey (one per line)">{{ settings.TORZNAB_PROVIDERS }}</textarea>
+                    <span class="form-help">Format: <code>TrackerName|http://localhost:9117/api/v2.0/indexers/tracker/results/torznab|your_api_key</code>.</span>
+                </div>
+            </div>
+
+            <!-- Downloaders Tab -->
+            <div id="downloaders" class="tab-content" style="display: none;">
+                <h3>Downloader Client Integration</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Select and configure the download client to dispatch snatched comics.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" for="DOWNLOADER_TYPE">Downloader Type</label>
+                    <select class="form-input" id="DOWNLOADER_TYPE" name="DOWNLOADER_TYPE" onchange="updateDownloaderFields()">
+                        <option value="none" {% if settings.DOWNLOADER_TYPE == 'none' %}selected{% endif %}>None (Manual snatch only)</option>
+                        <option value="sabnzbd" {% if settings.DOWNLOADER_TYPE == 'sabnzbd' %}selected{% endif %}>SABnzbd (Usenet)</option>
+                        <option value="nzbget" {% if settings.DOWNLOADER_TYPE == 'nzbget' %}selected{% endif %}>NZBGet (Usenet)</option>
+                        <option value="qbittorrent" {% if settings.DOWNLOADER_TYPE == 'qbittorrent' %}selected{% endif %}>qBittorrent (Torrent)</option>
+                        <option value="transmission" {% if settings.DOWNLOADER_TYPE == 'transmission' %}selected{% endif %}>Transmission (Torrent)</option>
+                    </select>
+                </div>
+
+                <!-- SABnzbd Fields -->
+                <div id="sabnzbd-fields" class="downloader-fields" style="display: {% if settings.DOWNLOADER_TYPE == 'sabnzbd' %}block{% else %}none{% endif %};">
+                    <h4 style="margin-bottom: 1rem; color: var(--accent-cyan);">SABnzbd Configuration</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="SABNZBD_URL">SABnzbd Host URL</label>
+                        <input class="form-input" type="url" id="SABNZBD_URL" name="SABNZBD_URL" value="{{ settings.SABNZBD_URL }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="SABNZBD_API_KEY">API Key</label>
+                            <input class="form-input" type="password" id="SABNZBD_API_KEY" name="SABNZBD_API_KEY" value="{{ settings.SABNZBD_API_KEY }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="SABNZBD_CATEGORY">Category</label>
+                            <input class="form-input" type="text" id="SABNZBD_CATEGORY" name="SABNZBD_CATEGORY" value="{{ settings.SABNZBD_CATEGORY }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NZBGet Fields -->
+                <div id="nzbget-fields" class="downloader-fields" style="display: {% if settings.DOWNLOADER_TYPE == 'nzbget' %}block{% else %}none{% endif %};">
+                    <h4 style="margin-bottom: 1rem; color: var(--accent-cyan);">NZBGet Configuration</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="NZBGET_URL">NZBGet Host URL</label>
+                        <input class="form-input" type="url" id="NZBGET_URL" name="NZBGET_URL" value="{{ settings.NZBGET_URL }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_USERNAME">Username</label>
+                            <input class="form-input" type="text" id="NZBGET_USERNAME" name="NZBGET_USERNAME" value="{{ settings.NZBGET_USERNAME }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_PASSWORD">Password</label>
+                            <input class="form-input" type="password" id="NZBGET_PASSWORD" name="NZBGET_PASSWORD" value="{{ settings.NZBGET_PASSWORD }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_CATEGORY">Category</label>
+                            <input class="form-input" type="text" id="NZBGET_CATEGORY" name="NZBGET_CATEGORY" value="{{ settings.NZBGET_CATEGORY }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- qBittorrent Fields -->
+                <div id="qbittorrent-fields" class="downloader-fields" style="display: {% if settings.DOWNLOADER_TYPE == 'qbittorrent' %}block{% else %}none{% endif %};">
+                    <h4 style="margin-bottom: 1rem; color: var(--accent-cyan);">qBittorrent Configuration</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="QBITTORRENT_URL">qBittorrent Host URL</label>
+                        <input class="form-input" type="url" id="QBITTORRENT_URL" name="QBITTORRENT_URL" value="{{ settings.QBITTORRENT_URL }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="QBITTORRENT_USERNAME">Username</label>
+                            <input class="form-input" type="text" id="QBITTORRENT_USERNAME" name="QBITTORRENT_USERNAME" value="{{ settings.QBITTORRENT_USERNAME }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="QBITTORRENT_PASSWORD">Password</label>
+                            <input class="form-input" type="password" id="QBITTORRENT_PASSWORD" name="QBITTORRENT_PASSWORD" value="{{ settings.QBITTORRENT_PASSWORD }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="QBITTORRENT_CATEGORY">Category/Tag</label>
+                            <input class="form-input" type="text" id="QBITTORRENT_CATEGORY" name="QBITTORRENT_CATEGORY" value="{{ settings.QBITTORRENT_CATEGORY }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transmission Fields -->
+                <div id="transmission-fields" class="downloader-fields" style="display: {% if settings.DOWNLOADER_TYPE == 'transmission' %}block{% else %}none{% endif %};">
+                    <h4 style="margin-bottom: 1rem; color: var(--accent-cyan);">Transmission Configuration</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="TRANSMISSION_URL">Transmission Host URL</label>
+                        <input class="form-input" type="url" id="TRANSMISSION_URL" name="TRANSMISSION_URL" value="{{ settings.TRANSMISSION_URL }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="TRANSMISSION_USERNAME">Username</label>
+                            <input class="form-input" type="text" id="TRANSMISSION_USERNAME" name="TRANSMISSION_USERNAME" value="{{ settings.TRANSMISSION_USERNAME }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="TRANSMISSION_PASSWORD">Password</label>
+                            <input class="form-input" type="password" id="TRANSMISSION_PASSWORD" name="TRANSMISSION_PASSWORD" value="{{ settings.TRANSMISSION_PASSWORD }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="TRANSMISSION_DIRECTORY">Download Directory (Optional)</label>
+                            <input class="form-input" type="text" id="TRANSMISSION_DIRECTORY" name="TRANSMISSION_DIRECTORY" value="{{ settings.TRANSMISSION_DIRECTORY }}" placeholder="Leave empty for default">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="notifications" class="tab-content" style="display: none;">
+                <h3>Apprise Push Notifications</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure notification push targets using standard Apprise URL schemas.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" for="APPRISE_URLS">Apprise Notification URLs</label>
+                    <textarea class="form-input" id="APPRISE_URLS" name="APPRISE_URLS" rows="3" placeholder="discord://webhook_id/token, tgram://bot_token/chat_id">{{ settings.APPRISE_URLS }}</textarea>
+                    <span class="form-help">Comma-separated URLs. Supports Discord, Telegram, Pushover, Gotify, Slack, Email, and 70+ others. See <a href="https://github.com/caronc/apprise/wiki" target="_blank">Apprise Wiki</a>.</span>
+                </div>
+
+                <h4 style="margin: 1.5rem 0 1rem; color: var(--accent-cyan);">Notification Events</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="NOTIFY_ON_SNATCH" name="NOTIFY_ON_SNATCH" {% if settings.NOTIFY_ON_SNATCH %}checked{% endif %}>
+                            Notify on Snatch
+                        </label>
+                        <span class="form-help">Send alert when an issue is sent to the downloader.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="NOTIFY_ON_FAILURE" name="NOTIFY_ON_FAILURE" {% if settings.NOTIFY_ON_FAILURE %}checked{% endif %}>
+                            Notify on Grab Failure
+                        </label>
+                        <span class="form-help">Send alert if all downloader retries fail.</span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label class="form-checkbox-label">
+                        <input class="form-checkbox" type="checkbox" id="NOTIFY_ON_NEW_ISSUES" name="NOTIFY_ON_NEW_ISSUES" {% if settings.NOTIFY_ON_NEW_ISSUES %}checked{% endif %}>
+                        Notify on New Issues Discovered
+                    </label>
+                    <span class="form-help">Send alert during periodic metadata sync when new issues are added as Wanted.</span>
+                </div>
+
+                <div style="padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
+                    <button type="button" class="btn btn-secondary" hx-post="/api/notifications/test" hx-swap="none" hx-on::after-request="handleTestResult(event)">
+                        Send Test Notification
+                    </button>
+                    <span class="htmx-indicator" id="test-indicator" style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Sending test message...
+                    </span>
+                </div>
+            </div>
+
+            <!-- Folders Tab -->
+            <div id="folders" class="tab-content" style="display: none;">
+                <h3>File and Folder Management</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure where files are organized on disk.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="CACHE_DIR">Cache Folder Path</label>
+                        <input class="form-input" type="text" id="CACHE_DIR" name="CACHE_DIR" value="{{ settings.CACHE_DIR }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="DESTINATION_DIR">Destination Folder Path (Comics Root)</label>
+                        <input class="form-input" type="text" id="DESTINATION_DIR" name="DESTINATION_DIR" value="{{ settings.DESTINATION_DIR }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-checkbox-label">
+                        <input class="form-checkbox" type="checkbox" id="CREATE_FOLDERS" name="CREATE_FOLDERS" {% if settings.CREATE_FOLDERS %}checked{% endif %}>
+                        Automatically Create Series Folders
+                    </label>
+                    <span class="form-help">Create folders like <code>comics/Marvel Comics/Spider-Man (2018)</code> on import.</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="COMIC_COVER_LOCAL" name="COMIC_COVER_LOCAL" {% if settings.COMIC_COVER_LOCAL %}checked{% endif %}>
+                            Download Local Issue Covers (cover.jpg)
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="COVER_FOLDER_LOCAL" name="COVER_FOLDER_LOCAL" {% if settings.COVER_FOLDER_LOCAL %}checked{% endif %}>
+                            Download Local Series Folder Art (folder.jpg)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+        </main>
+    </div>
+</form>
+
+<!-- Toast Container -->
+<div id="toast" class="toast">
+    <span id="toast-message"></span>
+</div>
+
+<script>
+    // Tab switching logic
+    function showTab(tabId, event) {
+        // Hide all tab content panes
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        // Deactivate all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        // Show selected tab content pane
+        document.getElementById(tabId).style.display = 'block';
+        // Mark current button as active
+        if (event) {
+            event.currentTarget.classList.add('active');
+        }
+    }
+
+    // Toggle downloader fields visibility based on dropdown type
+    function updateDownloaderFields() {
+        const type = document.getElementById('DOWNLOADER_TYPE').value;
+        // Hide all configurations
+        document.querySelectorAll('.downloader-fields').forEach(el => el.style.display = 'none');
+        // Show config for currently selected client type
+        const target = document.getElementById(type + '-fields');
+        if (target) {
+            target.style.display = 'block';
+        }
+    }
+
+    // Interactive Toast Notification
+    let toastTimeout;
+    function showToast(message, type = "success") {
+        const toast = document.getElementById('toast');
+        const msgSpan = document.getElementById('toast-message');
+        
+        // Clear previous classes
+        toast.className = "toast";
+        toast.classList.add(type === "success" ? "toast-success" : "toast-error");
+        
+        msgSpan.textContent = message;
+        toast.classList.add('show');
+        
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 4000);
+    }
+
+    // Handle form save action HTMX callback
+    function handleSaveResult(event) {
+        if (event.target !== document.getElementById('settings-form')) {
+            return;
+        }
+        const xhr = event.detail.xhr;
+        if (xhr.status === 200) {
+            try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.ok) {
+                    showToast("Settings saved successfully!", "success");
+                } else {
+                    showToast("Save failed: " + (res.message || "Unknown error"), "error");
+                }
+            } catch (e) {
+                showToast("Failed to parse server response.", "error");
+            }
+        } else {
+            showToast("Server error occurred (" + xhr.status + ").", "error");
+        }
+    }
+
+    // Handle Apprise test notification callback
+    function handleTestResult(event) {
+        event.stopPropagation();
+        const xhr = event.detail.xhr;
+        if (xhr.status === 200) {
+            try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.ok) {
+                    showToast("Test notification dispatched!", "success");
+                } else {
+                    showToast("Notification failed: " + (res.message || "Unknown error"), "error");
+                }
+            } catch (e) {
+                showToast("Failed to parse test result response.", "error");
+            }
+        } else {
+            showToast("Notification test failed (" + xhr.status + ").", "error");
+        }
+    }
+</script>
+{% endblock %}

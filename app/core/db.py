@@ -18,6 +18,7 @@ async def init_db():
         try:
             from app.models.comic import Comic
             from app.models.issue import Issue
+            from app.models.settings import SystemSettings
         except ImportError:
             pass
         await conn.run_sync(SQLModel.metadata.create_all)

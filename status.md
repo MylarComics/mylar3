@@ -22,8 +22,37 @@ This file tracks the current features, environment status, and pending/completed
   - [x] Port ComicVine API client, cover downloader, and db sync importer logic (Phase 2)
   - [x] Port search / RSS loops (Phase 3)
 - [x] Build lightweight HTMX web GUI (Phase 4)
+- [x] Implement async downloader client integrations (Phase 5)
+  - [x] SABnzbd (HTTP JSON REST API)
+  - [x] NZBGet (JSON-RPC)
+  - [x] qBittorrent (WebAPI v2 with native bencode hash extraction)
+  - [x] Transmission (JSON-RPC with CSRF session-token handling)
+  - [x] `BaseDownloader` abstract interface + `get_downloader()` factory
+  - [x] 26 passing unit tests across all four clients
+- [x] Implement Celery Beat scheduled task runner (Phase 6)
+  - [x] `app/core/sync_db.py` — psycopg2 sync engine for Celery workers
+  - [x] `app/tasks/search_wanted.py` — periodic search loop for Wanted issues
+  - [x] `app/tasks/grab_issue.py` — submit matches to downloader, update status to Snatched
+  - [x] `app/tasks/db_sync.py` — on-demand ComicVine metadata refresh
+  - [x] `app/worker.py` — expanded with beat_schedule, two queues (default + grabs)
+  - [x] `docker-compose.yml` — added `celery_beat` service
+  - [x] 11 passing unit tests (104 total, 0 failures)
+- [x] Implement Apprise notification system (Phase 7)
+  - [x] `app/notifications/base.py` — `BaseNotifier` ABC with async `notify()` interface
+  - [x] `app/notifications/apprise_notifier.py` — Apprise backend (70+ services, URL-scheme config)
+  - [x] `app/notifications/factory.py` — `get_notifier()` factory, lazy-loads when APPRISE_URLS is set
+  - [x] `grab_issue.py` — snatch success + failure notification hooks
+  - [x] `db_sync.py` — new-issue discovery notification hook
+  - [x] `POST /api/notifications/test` — test endpoint for verifying Apprise setup
+  - [x] 14 passing unit tests (118 total, 0 failures)
+- [x] Implement Settings Management (Phase 8)
+  - [x] `app/models/settings.py` — `SystemSettings` database table using SQLModel
+  - [x] `app/core/config.py` — extended settings with dynamic local filesystem cache reloading (`check_and_reload()`)
+  - [x] `app/services/settings_service.py` — DB seeding, cache serialization (`cache/settings_cache.json`), and atomic update functions
+  - [x] `app/templates/settings.html` — premium dark-themed configuration dashboard with tabbed HTMX sections, downloader client filters, and interactive toasts
+  - [x] Registered routes: `GET /settings` (web router) & `POST /api/settings` (API router)
+  - [x] 4 passing unit tests (122 total, 0 failures)
 
 ## Next Steps
-- Implement additional search providers or downloaders if requested.
-- Run user acceptance testing for aesthetics.
-
+- Run further user acceptance testing / manual flows in a staging environment.
+- Add additional comic book provider scraper clients or custom file layout rules as requested.

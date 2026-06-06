@@ -37,6 +37,7 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
             "new_issues": int,
         }
     """
+    settings.check_and_reload()
     logger.info(f"[DB Sync] Starting metadata sync for comic_id={comic_id}")
 
     with get_sync_session() as session:

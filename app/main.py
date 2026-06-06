@@ -15,8 +15,14 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         logger.info("PostgreSQL database tables initialized successfully.")
+        
+        # Initialize settings in database and cache
+        from app.core.db import async_session
+        from app.services.settings_service import initialize_settings
+        async with async_session() as session:
+            await initialize_settings(session)
     except Exception as e:
-        logger.error(f"Error initializing PostgreSQL tables: {e}")
+        logger.error(f"Error initializing PostgreSQL tables or settings: {e}")
     
     # Ensure cache directory exists
     os.makedirs(settings.CACHE_DIR, exist_ok=True)

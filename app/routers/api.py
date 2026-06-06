@@ -11,8 +11,12 @@ from app.services.cv_api import ComicVineClient
 from app.services.importer import add_comic_to_db
 from app.services.search import search_issue
 from app.core.logger import logger
+from app.core.config import settings
 
-router = APIRouter(prefix="/api")
+def check_settings():
+    settings.check_and_reload()
+
+router = APIRouter(prefix="/api", dependencies=[Depends(check_settings)])
 templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/search-cv", response_class=HTMLResponse)
@@ -272,3 +276,17 @@ async def test_notification():
             status_code=500,
             content={"ok": False, "message": f"Exception: {exc}"}
         )
+
+@router.post("/settings")
+async def update_settings(request: Request, session: AsyncSession = Depends(get_session)):
+    form_data = await request.form()
+    new_settings = {}
+    for k, v in form_data.items():
+        new_settings[k] = v
+        
+    from app.services.settings_service import save_settings
+    success = await save_settings(session, new_settings)
+    if success:
+        return JSONResponse({"ok": True})
+    else:
+        return JSONResponse({"ok": False, "message": "Failed to save settings to database"})

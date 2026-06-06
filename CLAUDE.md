@@ -8,7 +8,7 @@ You **MUST** run the project verification command after every code change to gua
 ### Rebuild and Verify Command
 Run the following command from the workspace root:
 ```bash
-.\.venv\Scripts\python -m pytest tests
+docker compose exec web pytest tests
 ```
 
 > [!IMPORTANT]
