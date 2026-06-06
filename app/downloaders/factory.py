@@ -3,6 +3,10 @@ from typing import Optional
 from app.core.config import settings
 from app.core.logger import logger
 from app.downloaders.base import BaseDownloader
+from app.downloaders.sabnzbd import SABnzbdDownloader
+from app.downloaders.nzbget import NZBGetDownloader
+from app.downloaders.qbittorrent import QBittorrentDownloader
+from app.downloaders.transmission import TransmissionDownloader
 
 
 def get_downloader(client_type: Optional[str] = None) -> Optional[BaseDownloader]:
@@ -16,19 +20,15 @@ def get_downloader(client_type: Optional[str] = None) -> Optional[BaseDownloader
     resolved_type = (client_type or settings.DOWNLOADER_TYPE).lower().strip()
 
     if resolved_type == "sabnzbd":
-        from app.downloaders.sabnzbd import SABnzbdDownloader
         return SABnzbdDownloader()
 
     if resolved_type == "nzbget":
-        from app.downloaders.nzbget import NZBGetDownloader
         return NZBGetDownloader()
 
     if resolved_type == "qbittorrent":
-        from app.downloaders.qbittorrent import QBittorrentDownloader
         return QBittorrentDownloader()
 
     if resolved_type == "transmission":
-        from app.downloaders.transmission import TransmissionDownloader
         return TransmissionDownloader()
 
     if resolved_type != "none":

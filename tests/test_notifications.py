@@ -248,13 +248,19 @@ class TestDbSyncNotifications:
         session.exec.side_effect = [comic_result, empty_result]
         mock_ctx.return_value = session
 
+        from app.services.cv_api import CVIssuesResponse, CVIssue
         mock_cv = MagicMock()
         mock_cv.get_volume = AsyncMock(return_value={
             "name": "Amazing Spider-Man", "publisher": {"name": "Marvel"}, "id": 1234
         })
-        mock_cv.get_issues = AsyncMock(return_value=[
-            {"id": 9001, "issue_number": "2", "name": "Chapter 2", "store_date": "2024-01-01"},
-        ])
+        mock_cv.get_issues = AsyncMock(return_value=CVIssuesResponse(
+            error="OK",
+            status_code=1,
+            number_of_total_results=1,
+            results=[
+                CVIssue(id=9001, issue_number="2", name="Chapter 2", store_date="2024-01-01")
+            ]
+        ))
         mock_cv_class.return_value = mock_cv
 
         mock_notifier = MagicMock()
@@ -288,13 +294,19 @@ class TestDbSyncNotifications:
         session.exec.side_effect = [comic_result, empty_result]
         mock_ctx.return_value = session
 
+        from app.services.cv_api import CVIssuesResponse, CVIssue
         mock_cv = MagicMock()
         mock_cv.get_volume = AsyncMock(return_value={
             "name": "Amazing Spider-Man", "publisher": {"name": "Marvel"}, "id": 1234
         })
-        mock_cv.get_issues = AsyncMock(return_value=[
-            {"id": 9001, "issue_number": "2", "name": "Chapter 2", "store_date": "2024-01-01"},
-        ])
+        mock_cv.get_issues = AsyncMock(return_value=CVIssuesResponse(
+            error="OK",
+            status_code=1,
+            number_of_total_results=1,
+            results=[
+                CVIssue(id=9001, issue_number="2", name="Chapter 2", store_date="2024-01-01")
+            ]
+        ))
         mock_cv_class.return_value = mock_cv
 
         with patch("app.tasks.db_sync.settings") as ms:

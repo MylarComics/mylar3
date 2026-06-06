@@ -9,6 +9,8 @@ Called by search_wanted via .delay() when a match is found and GRAB_ON_MATCH
 is enabled.
 """
 import asyncio
+import datetime
+import os
 from typing import Optional
 
 from sqlmodel import select
@@ -17,8 +19,11 @@ from app.core.config import settings
 from app.core.logger import logger
 from app.core.sync_db import get_sync_session
 from app.downloaders.factory import get_downloader
+from app.models.failed_release import FailedRelease
 from app.models.issue import Issue
 from app.notifications.factory import get_notifier
+from app.services.ddl import DDLService, JDownloader2
+from app.tasks.post_process import post_process_folder
 from app.worker import celery_app
 
 
@@ -61,7 +66,6 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
 
     job_id = None
     if result.get("type") == "ddl":
-        from app.services.ddl import DDLService
         ddl_service = DDLService()
         try:
             direct_link = asyncio.run(ddl_service.resolve_download_link(download_url))
@@ -71,7 +75,6 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
             
         if direct_link:
             if settings.JD2_ENABLE and settings.JD2_URL:
-                from app.services.ddl import JDownloader2
                 jd2 = JDownloader2(settings.JD2_URL)
                 package_name = f"{title} - {issue_id}"
                 logger.info(f"[Grab] Sending DDL link to JDownloader2 package {package_name}")
@@ -84,7 +87,6 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
                 except Exception as e:
                     logger.error(f"[Grab] JDownloader2 error: {e}")
             else:
-                import os
                 temp_dir = os.path.join("cache", "ddl", issue_id)
                 clean_url = direct_link.split("?")[0].rstrip("/")
                 filename = os.path.basename(clean_url)
@@ -96,7 +98,6 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
                 try:
                     download_ok = asyncio.run(ddl_service.download_file(direct_link, dest_filepath))
                     if download_ok:
-                        from app.tasks.post_process import post_process_folder
                         post_process_folder.delay(temp_dir)
                         job_id = f"ddl-{issue_id}"
                 except Exception as e:
@@ -130,8 +131,6 @@ def grab_issue(self, issue_id: str, result: dict) -> dict:
             f"[Grab] Download submission failed for issue {issue_id}."
         )
         if settings.FAILED_DOWNLOAD_HANDLING:
-            from app.models.failed_release import FailedRelease
-            import datetime
             try:
                 with get_sync_session() as session:
                     # Normalize / fallback for download_url

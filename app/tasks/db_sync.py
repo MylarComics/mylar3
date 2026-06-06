@@ -90,7 +90,8 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
         new_issues_added = 0
         if comic.status == "Active":
             try:
-                cv_issues: List[dict] = asyncio.run(cv_client.get_issues(int(comic_id)))
+                issues_resp = asyncio.run(cv_client.get_issues(str(comic_id)))
+                cv_issues = issues_resp.results
             except Exception as exc:
                 logger.error(
                     f"[DB Sync] Failed to fetch issues from ComicVine for {comic_id}: {exc}"
@@ -105,16 +106,16 @@ def sync_comic_metadata(self, comic_id: str) -> dict:
             )
 
             for cv_issue in cv_issues:
-                cv_issue_id = str(cv_issue.get("id", ""))
+                cv_issue_id = str(cv_issue.id)
                 if not cv_issue_id or cv_issue_id in existing_ids:
                     continue
 
                 new_issue = Issue(
                     issue_id=cv_issue_id,
                     comic_id=comic_id,
-                    issue_number=str(cv_issue.get("issue_number", "0")),
-                    issue_name=cv_issue.get("name") or None,
-                    release_date=cv_issue.get("store_date") or cv_issue.get("cover_date") or None,
+                    issue_number=cv_issue.issue_number,
+                    issue_name=cv_issue.name or None,
+                    release_date=cv_issue.store_date or cv_issue.cover_date or None,
                     status="Wanted",
                 )
                 session.add(new_issue)

@@ -1,4 +1,5 @@
 import re
+import datetime
 from typing import Optional
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -108,7 +109,6 @@ async def read_weekly_releases(
     publisher: Optional[str] = None,
     session: AsyncSession = Depends(get_session)
 ):
-    import datetime
     if week is None or year is None:
         today = datetime.date.today()
         if week is None:

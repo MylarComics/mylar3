@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.core.config import settings
 from app.notifications.base import BaseNotifier
+from app.notifications.apprise_notifier import AppriseNotifier
 
 
 def get_notifier() -> Optional[BaseNotifier]:
@@ -19,5 +20,4 @@ def get_notifier() -> Optional[BaseNotifier]:
     """
     if not settings.APPRISE_URLS.strip():
         return None
-    from app.notifications.apprise_notifier import AppriseNotifier
     return AppriseNotifier()

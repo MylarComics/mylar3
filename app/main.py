@@ -3,9 +3,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.core.config import settings
-from app.core.db import init_db
+from app.core.db import init_db, async_session
 from app.core.logger import logger, log_memory
 from app.routers import web, api, opds
+from app.services.settings_service import initialize_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,8 +18,6 @@ async def lifespan(app: FastAPI):
         logger.info("PostgreSQL database tables initialized successfully.")
         
         # Initialize settings in database and cache
-        from app.core.db import async_session
-        from app.services.settings_service import initialize_settings
         async with async_session() as session:
             await initialize_settings(session)
     except Exception as e:

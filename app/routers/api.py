@@ -13,6 +13,10 @@ from app.services.importer import add_comic_to_db
 from app.services.search import search_issue
 from app.core.logger import logger
 from app.core.config import settings
+from app.tasks.post_process import post_process_folder
+from app.services.weekly_pull import WeeklyPullService
+from app.services.settings_service import save_settings
+from app.services.library_sync import LibrarySyncService
 
 def check_settings():
     settings.check_and_reload()
@@ -284,7 +288,6 @@ async def api_postprocess(
     nzb_name: Optional[str] = Form(None),
     status: Optional[str] = Form("success")
 ):
-    from app.tasks.post_process import post_process_folder
     task = post_process_folder.delay(folder_path, nzb_name, status)
     return {"ok": True, "task_id": task.id}
 
@@ -294,7 +297,6 @@ async def sync_weekly_releases(
     year: Optional[int] = Form(None),
     session: AsyncSession = Depends(get_session)
 ):
-    from app.services.weekly_pull import WeeklyPullService
     service = WeeklyPullService(session)
     try:
         res = await service.fetch_and_sync(week, year)
@@ -309,7 +311,6 @@ async def update_settings(request: Request, session: AsyncSession = Depends(get_
     for k, v in form_data.items():
         new_settings[k] = v
         
-    from app.services.settings_service import save_settings
     success = await save_settings(session, new_settings)
     if success:
         return JSONResponse({"ok": True})
@@ -322,7 +323,6 @@ async def api_import_scan(
     scan_dir: str = Form(...),
     session: AsyncSession = Depends(get_session)
 ):
-    from app.services.library_sync import LibrarySyncService
     service = LibrarySyncService(session)
     res = await service.scan_and_sync_library(scan_dir)
     

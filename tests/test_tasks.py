@@ -292,13 +292,19 @@ class TestSyncComicMetadata:
         mock_ctx.return_value.__exit__ = MagicMock(return_value=False)
 
         # Mock the CV client instance's async methods
+        from app.services.cv_api import CVIssuesResponse
         mock_cv = MagicMock()
         mock_cv.get_volume = AsyncMock(return_value={
             "name": "Amazing Spider-Man",
             "publisher": {"name": "Marvel"},
             "id": 1234,
         })
-        mock_cv.get_issues = AsyncMock(return_value=[])
+        mock_cv.get_issues = AsyncMock(return_value=CVIssuesResponse(
+            error="OK",
+            status_code=1,
+            number_of_total_results=0,
+            results=[]
+        ))
         mock_cv_class.return_value = mock_cv
 
         from app.tasks.db_sync import sync_comic_metadata
@@ -318,16 +324,22 @@ class TestSyncComicMetadata:
         mock_ctx.return_value.__enter__ = MagicMock(return_value=mock_session)
         mock_ctx.return_value.__exit__ = MagicMock(return_value=False)
 
+        from app.services.cv_api import CVIssuesResponse, CVIssue
         mock_cv = MagicMock()
         mock_cv.get_volume = AsyncMock(return_value={
             "name": "Amazing Spider-Man",
             "publisher": {"name": "Marvel"},
             "id": 1234,
         })
-        mock_cv.get_issues = AsyncMock(return_value=[
-            {"id": 9001, "issue_number": "2", "name": "Chapter 2", "store_date": "2024-01-01"},
-            {"id": 9002, "issue_number": "3", "name": "Chapter 3", "store_date": "2024-02-01"},
-        ])
+        mock_cv.get_issues = AsyncMock(return_value=CVIssuesResponse(
+            error="OK",
+            status_code=1,
+            number_of_total_results=2,
+            results=[
+                CVIssue(id=9001, issue_number="2", name="Chapter 2", store_date="2024-01-01"),
+                CVIssue(id=9002, issue_number="3", name="Chapter 3", store_date="2024-02-01"),
+            ]
+        ))
         mock_cv_class.return_value = mock_cv
 
         from app.tasks.db_sync import sync_comic_metadata
