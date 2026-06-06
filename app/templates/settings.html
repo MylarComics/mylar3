@@ -12,13 +12,16 @@
 
 <form hx-post="/api/settings" hx-swap="none" hx-on::after-request="handleSaveResult(event)" id="settings-form">
     <div class="settings-container">
-        <!-- Sidebar Navigation Tabs -->
         <aside class="settings-sidebar">
             <button type="button" class="tab-btn active" onclick="showTab('comicvine', event)">ComicVine</button>
             <button type="button" class="tab-btn" onclick="showTab('scheduler', event)">Search & Scheduler</button>
             <button type="button" class="tab-btn" onclick="showTab('downloaders', event)">Downloaders</button>
+            <button type="button" class="tab-btn" onclick="showTab('torrents', event)">Torrents</button>
             <button type="button" class="tab-btn" onclick="showTab('notifications', event)">Notifications</button>
             <button type="button" class="tab-btn" onclick="showTab('folders', event)">Folders & Files</button>
+            <button type="button" class="tab-btn" onclick="showTab('metatagging', event)">Metatagging</button>
+            <button type="button" class="tab-btn" onclick="showTab('weeklypulls', event)">Weekly Pulls</button>
+            <button type="button" class="tab-btn" onclick="showTab('ddl', event)">Direct Downloads</button>
         </aside>
 
         <!-- Main Settings Pane -->
@@ -138,6 +141,69 @@
                             <input class="form-input" type="text" id="SABNZBD_CATEGORY" name="SABNZBD_CATEGORY" value="{{ settings.SABNZBD_CATEGORY }}">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_USERNAME">Username (Optional)</label>
+                            <input class="form-input" type="text" id="SAB_USERNAME" name="SAB_USERNAME" value="{{ settings.SAB_USERNAME }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_PASSWORD">Password (Optional)</label>
+                            <input class="form-input" type="password" id="SAB_PASSWORD" name="SAB_PASSWORD" value="{{ settings.SAB_PASSWORD }}">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_PRIORITY">Priority</label>
+                            <select class="form-input" id="SAB_PRIORITY" name="SAB_PRIORITY">
+                                <option value="Default" {% if settings.SAB_PRIORITY == 'Default' %}selected{% endif %}>Default</option>
+                                <option value="High" {% if settings.SAB_PRIORITY == 'High' %}selected{% endif %}>High</option>
+                                <option value="Normal" {% if settings.SAB_PRIORITY == 'Normal' %}selected{% endif %}>Normal</option>
+                                <option value="Low" {% if settings.SAB_PRIORITY == 'Low' %}selected{% endif %}>Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_DIRECTORY">Completed Download Directory</label>
+                            <input class="form-input" type="text" id="SAB_DIRECTORY" name="SAB_DIRECTORY" value="{{ settings.SAB_DIRECTORY }}" placeholder="Leave empty for client default">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_MOVING_DELAY">Moving Delay (Seconds)</label>
+                            <input class="form-input" type="number" id="SAB_MOVING_DELAY" name="SAB_MOVING_DELAY" value="{{ settings.SAB_MOVING_DELAY }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="SAB_VERSION">SABnzbd Version (Read-only)</label>
+                            <input class="form-input" type="text" id="SAB_VERSION" name="SAB_VERSION" value="{{ settings.SAB_VERSION }}" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-checkbox-label">
+                                <input class="form-checkbox" type="checkbox" id="SAB_CLIENT_POST_PROCESSING" name="SAB_CLIENT_POST_PROCESSING" {% if settings.SAB_CLIENT_POST_PROCESSING %}checked{% endif %}>
+                                Client-side Post-Processing (CDH)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-checkbox-label">
+                                <input class="form-checkbox" type="checkbox" id="SAB_REMOVE_COMPLETED" name="SAB_REMOVE_COMPLETED" {% if settings.SAB_REMOVE_COMPLETED %}checked{% endif %}>
+                                Remove Completed Downloads
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-checkbox-label">
+                                <input class="form-checkbox" type="checkbox" id="SAB_REMOVE_FAILED" name="SAB_REMOVE_FAILED" {% if settings.SAB_REMOVE_FAILED %}checked{% endif %}>
+                                Remove Failed Downloads
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-checkbox-label">
+                                <input class="form-checkbox" type="checkbox" id="SAB_TO_MYLAR" name="SAB_TO_MYLAR" {% if settings.SAB_TO_MYLAR %}checked{% endif %}>
+                                Send back to Mylar
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- NZBGet Fields -->
@@ -160,6 +226,38 @@
                             <label class="form-label" for="NZBGET_CATEGORY">Category</label>
                             <input class="form-input" type="text" id="NZBGET_CATEGORY" name="NZBGET_CATEGORY" value="{{ settings.NZBGET_CATEGORY }}">
                         </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_PORT">Port Override (Optional)</label>
+                            <input class="form-input" type="text" id="NZBGET_PORT" name="NZBGET_PORT" value="{{ settings.NZBGET_PORT }}" placeholder="6789">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_SUB">URL Sub-folder (Optional)</label>
+                            <input class="form-input" type="text" id="NZBGET_SUB" name="NZBGET_SUB" value="{{ settings.NZBGET_SUB }}" placeholder="xmlrpc">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_PRIORITY">Priority</label>
+                            <select class="form-input" id="NZBGET_PRIORITY" name="NZBGET_PRIORITY">
+                                <option value="" {% if settings.NZBGET_PRIORITY == '' %}selected{% endif %}>Default</option>
+                                <option value="Very High" {% if settings.NZBGET_PRIORITY == 'Very High' %}selected{% endif %}>Very High</option>
+                                <option value="High" {% if settings.NZBGET_PRIORITY == 'High' %}selected{% endif %}>High</option>
+                                <option value="Normal" {% if settings.NZBGET_PRIORITY == 'Normal' %}selected{% endif %}>Normal</option>
+                                <option value="Low" {% if settings.NZBGET_PRIORITY == 'Low' %}selected{% endif %}>Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="NZBGET_DIRECTORY">Completed Download Directory</label>
+                            <input class="form-input" type="text" id="NZBGET_DIRECTORY" name="NZBGET_DIRECTORY" value="{{ settings.NZBGET_DIRECTORY }}" placeholder="Leave empty for client default">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="NZBGET_CLIENT_POST_PROCESSING" name="NZBGET_CLIENT_POST_PROCESSING" {% if settings.NZBGET_CLIENT_POST_PROCESSING %}checked{% endif %}>
+                            Client-side Post-Processing (CDH)
+                        </label>
                     </div>
                 </div>
 
@@ -184,6 +282,24 @@
                             <input class="form-input" type="text" id="QBITTORRENT_CATEGORY" name="QBITTORRENT_CATEGORY" value="{{ settings.QBITTORRENT_CATEGORY }}">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="QBITTORRENT_FOLDER">Download Folder Override</label>
+                            <input class="form-input" type="text" id="QBITTORRENT_FOLDER" name="QBITTORRENT_FOLDER" value="{{ settings.QBITTORRENT_FOLDER }}" placeholder="Leave empty for default">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="QBITTORRENT_LABEL">Label / Category Name</label>
+                            <input class="form-input" type="text" id="QBITTORRENT_LABEL" name="QBITTORRENT_LABEL" value="{{ settings.QBITTORRENT_LABEL }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="QBITTORRENT_LOADACTION">Load Action</label>
+                        <select class="form-input" id="QBITTORRENT_LOADACTION" name="QBITTORRENT_LOADACTION">
+                            <option value="default" {% if settings.QBITTORRENT_LOADACTION == 'default' %}selected{% endif %}>Default</option>
+                            <option value="force_start" {% if settings.QBITTORRENT_LOADACTION == 'force_start' %}selected{% endif %}>Force Start</option>
+                            <option value="paused" {% if settings.QBITTORRENT_LOADACTION == 'paused' %}selected{% endif %}>Add Paused</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Transmission Fields -->
@@ -206,6 +322,10 @@
                             <label class="form-label" for="TRANSMISSION_DIRECTORY">Download Directory (Optional)</label>
                             <input class="form-input" type="text" id="TRANSMISSION_DIRECTORY" name="TRANSMISSION_DIRECTORY" value="{{ settings.TRANSMISSION_DIRECTORY }}" placeholder="Leave empty for default">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="TRANSMISSION_HOST">Transmission Host Override (Optional)</label>
+                        <input class="form-input" type="text" id="TRANSMISSION_HOST" name="TRANSMISSION_HOST" value="{{ settings.TRANSMISSION_HOST }}" placeholder="localhost">
                     </div>
                 </div>
             </div>
@@ -301,6 +421,474 @@
                             <input class="form-checkbox" type="checkbox" id="COVER_FOLDER_LOCAL" name="COVER_FOLDER_LOCAL" {% if settings.COVER_FOLDER_LOCAL %}checked{% endif %}>
                             Download Local Series Folder Art (folder.jpg)
                         </label>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="RENAME_FILES" name="RENAME_FILES" {% if settings.RENAME_FILES %}checked{% endif %}>
+                            Rename Downloaded Files
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="MOVE_FILES" name="MOVE_FILES" {% if settings.MOVE_FILES %}checked{% endif %}>
+                            Move Files to Destination
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="FILE_FORMAT">File Name Format</label>
+                        <input class="form-input" type="text" id="FILE_FORMAT" name="FILE_FORMAT" value="{{ settings.FILE_FORMAT }}">
+                        <span class="form-help">Variables: <code>$Series</code>, <code>$Issue</code>, <code>$Year</code>, <code>$Annual</code>.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="FOLDER_FORMAT">Folder Format</label>
+                        <input class="form-input" type="text" id="FOLDER_FORMAT" name="FOLDER_FORMAT" value="{{ settings.FOLDER_FORMAT }}">
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="FAILED_DOWNLOAD_HANDLING" name="FAILED_DOWNLOAD_HANDLING" {% if settings.FAILED_DOWNLOAD_HANDLING %}checked{% endif %}>
+                            Failed Download Handling (FDH)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="FAILED_AUTO" name="FAILED_AUTO" {% if settings.FAILED_AUTO %}checked{% endif %}>
+                            Auto-Retry Failed Downloads
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label class="form-label" for="PREFERRED_QUALITY">Preferred Quality Profile</label>
+                    <select class="form-input" id="PREFERRED_QUALITY" name="PREFERRED_QUALITY">
+                        <option value="0" {% if settings.PREFERRED_QUALITY == 0 %}selected{% endif %}>Any Quality (Default)</option>
+                        <option value="1" {% if settings.PREFERRED_QUALITY == 1 %}selected{% endif %}>Digital / Retail</option>
+                        <option value="2" {% if settings.PREFERRED_QUALITY == 2 %}selected{% endif %}>Print Scans</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Torrents Tab -->
+            <div id="torrents" class="tab-content" style="display: none;">
+                <h3>Torrent Search Settings</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure torrent indexing, seed thresholds, and tracker verification.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_TORRENTS" name="ENABLE_TORRENTS" {% if settings.ENABLE_TORRENTS %}checked{% endif %}>
+                            Enable Torrents Download
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_TORRENT_SEARCH" name="ENABLE_TORRENT_SEARCH" {% if settings.ENABLE_TORRENT_SEARCH %}checked{% endif %}>
+                            Enable Torrent Search Providers
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_PUBLIC" name="ENABLE_PUBLIC" {% if settings.ENABLE_PUBLIC %}checked{% endif %}>
+                            Enable Public Torrent Trackers
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="PUBLIC_VERIFY" name="PUBLIC_VERIFY" {% if settings.PUBLIC_VERIFY %}checked{% endif %}>
+                            Verify Public Tracker SSL
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="MINSEEDS">Minimum Seeders Threshold</label>
+                    <input class="form-input" type="number" id="MINSEEDS" name="MINSEEDS" value="{{ settings.MINSEEDS }}">
+                    <span class="form-help">Reject torrent releases with fewer seeders than this value.</span>
+                </div>
+            </div>
+
+            <!-- Metatagging Tab -->
+            <div id="metatagging" class="tab-content" style="display: none;">
+                <h3>ComicTagger Metatagging</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Embed metadata tags inside comic archives using ComicTagger tool.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-checkbox-label">
+                        <input class="form-checkbox" type="checkbox" id="ENABLE_META" name="ENABLE_META" {% if settings.ENABLE_META %}checked{% endif %}>
+                        Enable Metatagging
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="CMTAGGER_PATH">ComicTagger Executable Path</label>
+                        <input class="form-input" type="text" id="CMTAGGER_PATH" name="CMTAGGER_PATH" value="{{ settings.CMTAGGER_PATH }}" placeholder="/usr/local/bin/comictagger">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="CT_SETTINGSPATH">ComicTagger Settings Path</label>
+                        <input class="form-input" type="text" id="CT_SETTINGSPATH" name="CT_SETTINGSPATH" value="{{ settings.CT_SETTINGSPATH }}" placeholder="~/.ComicTagger">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CBR2CBZ_ONLY" name="CBR2CBZ_ONLY" {% if settings.CBR2CBZ_ONLY %}checked{% endif %}>
+                            Convert CBR to CBZ (Metadata is only written to CBZ)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CT_CBZ_OVERWRITE" name="CT_CBZ_OVERWRITE" {% if settings.CT_CBZ_OVERWRITE %}checked{% endif %}>
+                            Overwrite existing metadata tags
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CT_TAG_CR" name="CT_TAG_CR" {% if settings.CT_TAG_CR %}checked{% endif %}>
+                            Write ComicRack tag schema
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CT_TAG_CBL" name="CT_TAG_CBL" {% if settings.CT_TAG_CBL %}checked{% endif %}>
+                            Write ComicBookLover tag schema
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CMTAG_VOLUME" name="CMTAG_VOLUME" {% if settings.CMTAG_VOLUME %}checked{% endif %}>
+                            Write Volume tag field
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CMTAG_START_YEAR_AS_VOLUME" name="CMTAG_START_YEAR_AS_VOLUME" {% if settings.CMTAG_START_YEAR_AS_VOLUME %}checked{% endif %}>
+                            Use Start Year as Volume
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="SETDEFAULTVOLUME" name="SETDEFAULTVOLUME" {% if settings.SETDEFAULTVOLUME %}checked{% endif %}>
+                            Set Default Volume field
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="CV_BATCH_LIMIT_PROTECTION" name="CV_BATCH_LIMIT_PROTECTION" {% if settings.CV_BATCH_LIMIT_PROTECTION %}checked{% endif %}>
+                            ComicVine Batch Limit Protection
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="CV_BATCH_LIMIT_THRESHOLD">CV Batch Threshold</label>
+                        <input class="form-input" type="number" id="CV_BATCH_LIMIT_THRESHOLD" name="CV_BATCH_LIMIT_THRESHOLD" value="{{ settings.CV_BATCH_LIMIT_THRESHOLD }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="CT_NOTES_FORMAT">Metatag Notes Format</label>
+                        <input class="form-input" type="text" id="CT_NOTES_FORMAT" name="CT_NOTES_FORMAT" value="{{ settings.CT_NOTES_FORMAT }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="UNRAR_CMD">Unrar Path Command</label>
+                    <input class="form-input" type="text" id="UNRAR_CMD" name="UNRAR_CMD" value="{{ settings.UNRAR_CMD }}" placeholder="unrar">
+                </div>
+            </div>
+
+            <!-- Weekly Pulls Tab -->
+            <div id="weeklypulls" class="tab-content" style="display: none;">
+                <h3>Weekly Pull Lists & Story Arcs</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure pull lists scheduler, weekly issue naming, and story arc directories.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="ALT_PULL">Alt Pull Mode</label>
+                        <input class="form-input" type="number" id="ALT_PULL" name="ALT_PULL" value="{{ settings.ALT_PULL }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="PULL_REFRESH">Pull Refresh Date (Read-only)</label>
+                        <input class="form-input" type="text" id="PULL_REFRESH" name="PULL_REFRESH" value="{{ settings.PULL_REFRESH }}" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="AUTO_MASS_ADD" name="AUTO_MASS_ADD" {% if settings.AUTO_MASS_ADD %}checked{% endif %}>
+                            Auto Add Mass Publishers
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="PACK_0DAY_WATCHLIST_ONLY" name="PACK_0DAY_WATCHLIST_ONLY" {% if settings.PACK_0DAY_WATCHLIST_ONLY %}checked{% endif %}>
+                            0-Day Pack Watchlist Only
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="RESET_PULLIST_PAGINATION" name="RESET_PULLIST_PAGINATION" {% if settings.RESET_PULLIST_PAGINATION %}checked{% endif %}>
+                            Reset Pullist Pagination
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="WEEKFOLDER" name="WEEKFOLDER" {% if settings.WEEKFOLDER %}checked{% endif %}>
+                            Create Weekly Folders
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="WEEKFOLDER_FORMAT">Weekly Folder Format</label>
+                        <input class="form-input" type="number" id="WEEKFOLDER_FORMAT" name="WEEKFOLDER_FORMAT" value="{{ settings.WEEKFOLDER_FORMAT }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="WEEKFOLDER_LOC">Weekly Folder Location</label>
+                        <input class="form-input" type="text" id="WEEKFOLDER_LOC" name="WEEKFOLDER_LOC" value="{{ settings.WEEKFOLDER_LOC }}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="BIGGIE_PUB">Big Publishers Threshold</label>
+                        <input class="form-input" type="number" id="BIGGIE_PUB" name="BIGGIE_PUB" value="{{ settings.BIGGIE_PUB }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="INDIE_PUB">Indie Publishers Threshold</label>
+                        <input class="form-input" type="number" id="INDIE_PUB" name="INDIE_PUB" value="{{ settings.INDIE_PUB }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="MASS_PUBLISHERS">Mass Publishers List</label>
+                    <textarea class="form-input" id="MASS_PUBLISHERS" name="MASS_PUBLISHERS" rows="2" placeholder="marvel, dc, image">{{ settings.MASS_PUBLISHERS }}</textarea>
+                </div>
+
+                <h4 style="margin: 2rem 0 1rem; color: var(--accent-cyan);">Story Arc / Reading List Settings</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="STORYARCDIR" name="STORYARCDIR" {% if settings.STORYARCDIR %}checked{% endif %}>
+                            Create Story Arc Directories
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="COPY2ARCDIR" name="COPY2ARCDIR" {% if settings.COPY2ARCDIR %}checked{% endif %}>
+                            Copy Issues to Arc Directory
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="SEARCH_STORYARCS" name="SEARCH_STORYARCS" {% if settings.SEARCH_STORYARCS %}checked{% endif %}>
+                            Search Story Arcs
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="UPCOMING_STORYARCS" name="UPCOMING_STORYARCS" {% if settings.UPCOMING_STORYARCS %}checked{% endif %}>
+                            Watch Upcoming Story Arcs
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="STORYARC_LOCATION">Story Arc Storage Location</label>
+                        <input class="form-input" type="text" id="STORYARC_LOCATION" name="STORYARC_LOCATION" value="{{ settings.STORYARC_LOCATION }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="ARC_FOLDERFORMAT">Arc Folder Name Format</label>
+                        <input class="form-input" type="text" id="ARC_FOLDERFORMAT" name="ARC_FOLDERFORMAT" value="{{ settings.ARC_FOLDERFORMAT }}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="ARC_FILEOPS">Arc File Operation</label>
+                        <select class="form-input" id="ARC_FILEOPS" name="ARC_FILEOPS">
+                            <option value="copy" {% if settings.ARC_FILEOPS == 'copy' %}selected{% endif %}>Copy (Duplicate)</option>
+                            <option value="move" {% if settings.ARC_FILEOPS == 'move' %}selected{% endif %}>Move (Relocate)</option>
+                            <option value="symlink" {% if settings.ARC_FILEOPS == 'symlink' %}selected{% endif %}>Symlink</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label" style="margin-top: 1.8rem;">
+                            <input class="form-checkbox" type="checkbox" id="ARC_FILEOPS_SOFTLINK_RELATIVE" name="ARC_FILEOPS_SOFTLINK_RELATIVE" {% if settings.ARC_FILEOPS_SOFTLINK_RELATIVE %}checked{% endif %}>
+                            Relative Symlinks
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DDL Tab -->
+            <div id="ddl" class="tab-content" style="display: none;">
+                <h3>Direct Download Links (DDL)</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Configure Direct Download engines, FlareSolverr proxy, and JDownloader integrations.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_DDL" name="ENABLE_DDL" {% if settings.ENABLE_DDL %}checked{% endif %}>
+                            Enable Direct Downloads (DDL)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_GETCOMICS" name="ENABLE_GETCOMICS" {% if settings.ENABLE_GETCOMICS %}checked{% endif %}>
+                            Enable GetComics Provider
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="DDL_AUTORESUME" name="DDL_AUTORESUME" {% if settings.DDL_AUTORESUME %}checked{% endif %}>
+                            Auto Resume Interrupted Downloads
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="DDL_PREFER_UPSCALED" name="DDL_PREFER_UPSCALED" {% if settings.DDL_PREFER_UPSCALED %}checked{% endif %}>
+                            Prefer Upscaled Comic Scans
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="DDL_LOCATION">DDL Downloads Temp Directory</label>
+                        <input class="form-input" type="text" id="DDL_LOCATION" name="DDL_LOCATION" value="{{ settings.DDL_LOCATION }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="DDL_QUERY_DELAY">DDL Query Delay (Seconds)</label>
+                        <input class="form-input" type="number" id="DDL_QUERY_DELAY" name="DDL_QUERY_DELAY" value="{{ settings.DDL_QUERY_DELAY }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="DDL_PRIORITY_ORDER">DDL Hosters Priority (JSON list)</label>
+                    <input class="form-input" type="text" id="DDL_PRIORITY_ORDER" name="DDL_PRIORITY_ORDER" value="{{ settings.DDL_PRIORITY_ORDER }}">
+                </div>
+
+                <h4 style="margin: 2rem 0 1rem; color: var(--accent-cyan);">FlareSolverr & Proxy Configurations</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_FLARESOLVERR" name="ENABLE_FLARESOLVERR" {% if settings.ENABLE_FLARESOLVERR %}checked{% endif %}>
+                            Enable FlareSolverr
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="FLARESOLVERR_URL">FlareSolverr API URL</label>
+                        <input class="form-input" type="url" id="FLARESOLVERR_URL" name="FLARESOLVERR_URL" value="{{ settings.FLARESOLVERR_URL }}" placeholder="http://localhost:8191/v1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_PROXY" name="ENABLE_PROXY" {% if settings.ENABLE_PROXY %}checked{% endif %}>
+                            Enable Proxy for DDL Scraper
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="HTTP_PROXY">HTTP Proxy Address</label>
+                        <input class="form-input" type="text" id="HTTP_PROXY" name="HTTP_PROXY" value="{{ settings.HTTP_PROXY }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="HTTPS_PROXY">HTTPS Proxy Address</label>
+                        <input class="form-input" type="text" id="HTTPS_PROXY" name="HTTPS_PROXY" value="{{ settings.HTTPS_PROXY }}">
+                    </div>
+                </div>
+
+                <h4 style="margin: 2rem 0 1rem; color: var(--accent-cyan);">External Server & JDownloader 2 Settings</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="ENABLE_EXTERNAL_SERVER" name="ENABLE_EXTERNAL_SERVER" {% if settings.ENABLE_EXTERNAL_SERVER %}checked{% endif %}>
+                            Enable External Content Server
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox-label">
+                            <input class="form-checkbox" type="checkbox" id="PACK_PRIORITY" name="PACK_PRIORITY" {% if settings.PACK_PRIORITY %}checked{% endif %}>
+                            Pack Priority snatching
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="EXTERNAL_SERVER">External Server Host URL</label>
+                        <input class="form-input" type="url" id="EXTERNAL_SERVER" name="EXTERNAL_SERVER" value="{{ settings.EXTERNAL_SERVER }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="EXTERNAL_USERNAME">External Username</label>
+                        <input class="form-input" type="text" id="EXTERNAL_USERNAME" name="EXTERNAL_USERNAME" value="{{ settings.EXTERNAL_USERNAME }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="EXTERNAL_APIKEY">External API Key</label>
+                        <input class="form-input" type="password" id="EXTERNAL_APIKEY" name="EXTERNAL_APIKEY" value="{{ settings.EXTERNAL_APIKEY }}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-checkbox-label" style="margin-top: 1.8rem;">
+                            <input class="form-checkbox" type="checkbox" id="JD2_ENABLE" name="JD2_ENABLE" {% if settings.JD2_ENABLE %}checked{% endif %}>
+                            Enable JDownloader 2 Integration
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="JD2_URL">JD2 API Endpoint URL</label>
+                        <input class="form-input" type="url" id="JD2_URL" name="JD2_URL" value="{{ settings.JD2_URL }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="JD2_DEST_DIR">JD2 Destination Folder Override</label>
+                        <input class="form-input" type="text" id="JD2_DEST_DIR" name="JD2_DEST_DIR" value="{{ settings.JD2_DEST_DIR }}">
                     </div>
                 </div>
             </div>
