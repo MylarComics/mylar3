@@ -596,7 +596,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             wk_end = wkend.strftime('%Y-%m-%d')
 
             if issue_checkdate != '0000-00-00' and not ( re.sub('-', '', wk_end) >= re.sub('-', '', issue_checkdate) >= re.sub('-', '', wk_start) ):
-                logger.info('[IssueDate:%s] is not within the range of [Pulldate:%s - %s]. Incorrect match being imposed by WS - please log an issue if this has not fixed itself within a few hours' %(issue_checkdate, wk_info['startweek'], wk_info['endweek']))
+                logger.info('[IssueDate:%s] is not within the range of [Pulldate:%s - %s]. Incorrect match being imposed by provider backend - please log an issue if this has not fixed itself within a few hours' %(issue_checkdate, wk_info['startweek'], wk_info['endweek']))
                 if IssueNumber is not None:
                     presentline = '%s #%s' % (ComicName, IssueNumber)
                 else:
@@ -696,7 +696,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 else:
                     logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
             else:
-                logger.fdebug('[WEEKLY-PULL] Walksoftly has been enabled. ComicID/IssueID control given to the ninja to monitor.')
+                logger.fdebug('[WEEKLY-PULL] Weekly provider backend has been enabled. ComicID/IssueID control given to the ninja to monitor.')
                 logger.fdebug('hours: ' + str(hours) + ' -- forcecheck: ' + str(forcecheck))
                 if hours > 2 or forcecheck == 'yes':
                     logger.fdebug('weekinfo:' + str(weekinfo))

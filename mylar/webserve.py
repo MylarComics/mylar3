@@ -3203,7 +3203,7 @@ class WebInterface(object):
 
     def pullrecreate(self, weeknumber=None, year=None):
         if mylar.BACKENDSTATUS_WS != 'up':
-            logger.warn('[PULL-LIST] Cannot re-create pull-list as walksoftly is currently offline. Retaining existing pull-data until it\'s back online')
+            logger.warn('[PULL-LIST] Cannot re-create pull-list as the provider backend is currently offline. Retaining existing pull-data until it\'s back online')
             return {'status': 'failure'}
 
         myDB = db.DBConnection()
