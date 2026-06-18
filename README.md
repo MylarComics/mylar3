@@ -17,8 +17,11 @@ Install it via git clone or via [Docker](https://hub.docker.com/r/linuxserver/my
 Check out our [website](https://mylar.nerdfirehurricane.com/) for documentation!
 
 ## Support & Discussion
-Please try to limit Github issues to bugs & enhancement requests ONLY
-- [Github](https://github.com/MylarComics/mylar3/issues) (Bug & Feature requests only)
+GitHub should be for bug reports and feature requests only.
+- [Issues](https://github.com/MylarComics/mylar3/issues): Bug Reports/Support
+- [Discussions](https://github.com/MylarComics/mylar3/discussions): Feature Requests
+
+Please do not use AI to generate commentary or analysis in issues or discussions, and do not include workarounds or code changes unless they have been pre-agreed with the Mylar team.  This may result in issues or comments being deleted.  This is to protect both end users and our sanity.  The correct place for a code change is a PR.
 
 ## Live Support / Conversation
 - [Discord](https://discord.gg/6qpyCZRZRB)
