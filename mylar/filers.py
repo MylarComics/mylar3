@@ -92,7 +92,7 @@ class FileHandlers(object):
 
         if mylar.OS_DETECT == 'Windows':
             if '/' in folder_format:
-                folder_format = re.sub('/', '\\', folder_format).strip()
+                folder_format = folder_format.replace('/', '\\').strip()
         else:
             if '\\' in folder_format:
                 folder_format = folder_format.replace('\\', '/').strip()
