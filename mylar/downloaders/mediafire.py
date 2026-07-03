@@ -44,13 +44,17 @@ class MediaFire(object):
         url_origin = url
 
         while True:
-            t = self.session.get(
-                    url,
-                    verify=True,
-                    headers=self.headers,
-                    stream=True,
-                    timeout=(30,30)
-                )
+            try:
+                t = self.session.get(
+                        url,
+                        verify=True,
+                        headers=self.headers,
+                        stream=True,
+                        timeout=(30,30)
+                    )
+            except requests.exceptions.RequestException as e:
+                logger.warn('[MediaFire] Network error: %s' % e)
+                return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Media'}
 
             if 'Content-Disposition' in t.headers:
                 # This is the file

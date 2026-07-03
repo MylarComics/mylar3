@@ -57,13 +57,17 @@ class PixelDrain(object):
                 return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Pixel'}
 
 
-        t = self.session.get(
-                self.url,
-                verify=True,
-                headers=self.headers,
-                stream=True,
-                timeout=(30,30)
-            )
+        try:
+            t = self.session.get(
+                    self.url,
+                    verify=True,
+                    headers=self.headers,
+                    stream=True,
+                    timeout=(30,30)
+                )
+        except requests.exceptions.RequestException as e:
+            logger.warn('[PixelDrain] Network error resolving link: %s' % e)
+            return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Pixel'}
 
         file_id = os.path.basename(
             urllib.parse.unquote(t.url)
@@ -73,7 +77,11 @@ class PixelDrain(object):
         logger.fdebug('[PixelDrain] file_id: %s' % file_id)
 
         logger.fdebug('[PixelDrain] retrieving info for file_id: %s' % file_id)
-        f_info = self.session.get(f"https://pixeldrain.com/api/file/{file_id}/info", verify=True, headers=self.headers,stream=True)
+        try:
+            f_info = self.session.get(f"https://pixeldrain.com/api/file/{file_id}/info", verify=True, headers=self.headers,stream=True)
+        except requests.exceptions.RequestException as e:
+            logger.warn('[PixelDrain] Network error fetching file info: %s' % e)
+            return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Pixel'}
         if f_info.status_code == 200:
             info = f_info.json()
             logger.fdebug('[PixelDrain] pixeldrain_info_response: %s' % info)
