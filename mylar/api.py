@@ -156,32 +156,27 @@ class Api(object):
             self.apitype = 'normal'
         else:
             if not mylar.CONFIG.API_ENABLED:
-                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY and kwargs['apikey'] != mylar.SSE_KEY:
+                if kwargs['apikey'] != mylar.SSE_KEY:
                     self.data = self._failureResponse('API not enabled')
                     return
 
-            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.SSE_KEY, kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
+            if kwargs['apikey'] != mylar.CONFIG.API_KEY and kwargs['apikey'] != mylar.SSE_KEY:
                 self.data = self._failureResponse('Incorrect API key')
                 return
             else:
                 if kwargs['apikey'] == mylar.CONFIG.API_KEY:
                     self.apitype = 'normal'
-                elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
-                    self.apitype = 'download'
                 elif kwargs['apikey'] == mylar.SSE_KEY:
                     self.apitype = 'sse'
                 self.apikey = kwargs.pop('apikey')
 
-            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY, mylar.SSE_KEY]):
+            if not([mylar.CONFIG.API_KEY, mylar.SSE_KEY]):
                 self.data = self._failureResponse('API key not generated')
                 return
 
             if self.apitype:
                 if self.apitype == 'normal' and len(mylar.CONFIG.API_KEY) != 32:
                     self.data = self._failureResponse('API key not generated correctly')
-                    return
-                if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
-                    self.data = self._failureResponse('Download API key not generated correctly')
                     return
                 if self.apitype == 'sse' and len(mylar.SSE_KEY) != 32:
                     self.data = self._failureResponse('SSE-API key not generated correctly')

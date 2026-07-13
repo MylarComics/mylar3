@@ -3527,91 +3527,73 @@ def searcher(
         # end nzb.get
 
         elif mylar.USE_SABNZBD:
-            sab_params = None
-            # let's build the send-to-SAB string now:
-            # changed to just work with direct links now...
 
-            # generate the api key to download here and then kill it immediately after.
-            if mylar.DOWNLOAD_APIKEY is None:
-                import hashlib
-                import random
+            with open(nzbpath, 'rb') as nzbfile:
 
-                mylar.DOWNLOAD_APIKEY = hashlib.sha224(
-                    str(random.getrandbits(256)).encode('utf-8')
-                ).hexdigest()[0:32]
+                files = {
+                    'nzbfile': nzbfile
+                }
 
-            mylar_host = helpers.where_am_i()
+                sab_params = {
+                    'apikey': mylar.CONFIG.SAB_APIKEY,
+                    'mode': 'addfile',
+                    'cmd': 'downloadNZB',
+                    'nzbname': nzbname,
+                    'output': 'json',
+                }
 
-            fileURL = (
-                mylar_host
-                + 'api?apikey='
-                + mylar.DOWNLOAD_APIKEY
-                + '&cmd=downloadNZB&nzbname='
-                + nzbname
-            )
-
-            sab_params = {
-                'apikey': mylar.CONFIG.SAB_APIKEY,
-                'mode': 'addurl',
-                'name': fileURL,
-                'cmd': 'downloadNZB',
-                'nzbname': nzbname,
-                'output': 'json',
-            }
-
-            # determine SAB priority
-            if mylar.CONFIG.SAB_PRIORITY:
-                # setup the priorities.
-                if mylar.CONFIG.SAB_PRIORITY == 'Default':
-                    sabpriority = '-100'
-                elif mylar.CONFIG.SAB_PRIORITY == 'Low':
-                    sabpriority = '-1'
-                elif mylar.CONFIG.SAB_PRIORITY == 'Normal':
+                # determine SAB priority
+                if mylar.CONFIG.SAB_PRIORITY:
+                    # setup the priorities.
+                    if mylar.CONFIG.SAB_PRIORITY == 'Default':
+                        sabpriority = '-100'
+                    elif mylar.CONFIG.SAB_PRIORITY == 'Low':
+                        sabpriority = '-1'
+                    elif mylar.CONFIG.SAB_PRIORITY == 'Normal':
+                        sabpriority = '0'
+                    elif mylar.CONFIG.SAB_PRIORITY == 'High':
+                        sabpriority = '1'
+                    elif mylar.CONFIG.SAB_PRIORITY == 'Paused':
+                        sabpriority = '-2'
+                else:
+                    # if sab priority isn't selected, default to Normal (0)
                     sabpriority = '0'
-                elif mylar.CONFIG.SAB_PRIORITY == 'High':
-                    sabpriority = '1'
-                elif mylar.CONFIG.SAB_PRIORITY == 'Paused':
-                    sabpriority = '-2'
-            else:
-                # if sab priority isn't selected, default to Normal (0)
-                sabpriority = '0'
 
-            sab_params['priority'] = sabpriority
+                sab_params['priority'] = sabpriority
 
-            # if category is blank, let's adjust
-            if mylar.CONFIG.SAB_CATEGORY:
-                sab_params['cat'] = mylar.CONFIG.SAB_CATEGORY
+                # if category is blank, let's adjust
+                if mylar.CONFIG.SAB_CATEGORY:
+                    sab_params['cat'] = mylar.CONFIG.SAB_CATEGORY
 
-            if sab_params is not None:
-                ss = sabnzbd.SABnzbd(sab_params)
-                sendtosab = ss.sender()
-                if all(
-                    [
-                        sendtosab['status'] is True,
-                        mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True,
-                    ]
-                ):
-                    sendtosab['comicid'] = ComicID
-                    if IssueID is not None:
-                        sendtosab['issueid'] = IssueID
-                    else:
-                        sendtosab['issueid'] = 'S' + IssueArcID
-                    sendtosab['apicall'] = True
-                    sendtosab['download_info'] = {'provider': nzbprov, 'id': nzbid}
-                    logger.info('sendtosab: %s' % sendtosab)
-                    mylar.NZB_QUEUE.put(sendtosab)
-                elif sendtosab['status'] == 'double-pp':
-                    return sendtosab['status']
-                elif sendtosab['status'] is False:
+                if sab_params is not None:
+                    ss = sabnzbd.SABnzbd(sab_params, files)
+                    sendtosab = ss.sender()
+                    if all(
+                        [
+                            sendtosab['status'] is True,
+                            mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True,
+                        ]
+                    ):
+                        sendtosab['comicid'] = ComicID
+                        if IssueID is not None:
+                            sendtosab['issueid'] = IssueID
+                        else:
+                            sendtosab['issueid'] = 'S' + IssueArcID
+                        sendtosab['apicall'] = True
+                        sendtosab['download_info'] = {'provider': nzbprov, 'id': nzbid}
+                        logger.info('sendtosab: %s' % sendtosab)
+                        mylar.NZB_QUEUE.put(sendtosab)
+                    elif sendtosab['status'] == 'double-pp':
+                        return sendtosab['status']
+                    elif sendtosab['status'] is False:
+                        return 'sab-fail'
+                else:
+                    logger.warn(
+                        'Unable to send nzb file to SABnzbd. There was a parameter error as'
+                        ' there are no values present: %s'
+                        % sab_params
+                    )
                     return 'sab-fail'
-            else:
-                logger.warn(
-                    'Unable to send nzb file to SABnzbd. There was a parameter error as'
-                    ' there are no values present: %s'
-                    % sab_params
-                )
-                mylar.DOWNLOAD_APIKEY = None
-                return 'sab-fail'
 
             sent_to = 'has sent it to your SABnzbd+'
             logger.info('Successfully sent nzb file to SABnzbd')

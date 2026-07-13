@@ -27,9 +27,10 @@ import mylar
 from mylar import logger, cdh_mapping
 
 class SABnzbd(object):
-    def __init__(self, params):
+    def __init__(self, params, files=None):
         self.sab_url = mylar.CONFIG.SAB_HOST + '/api'
         self.params = params
+        self.files = files
 
     def sender(self, chkstatus=False):
         try:
@@ -46,7 +47,10 @@ class SABnzbd(object):
                 logger.fdebug('parameters set to %s' % self.params)
                 self.params['apikey'] = tmp_apikey
                 logger.fdebug('sending now to %s' % self.sab_url)
-                sendit = requests.post(self.sab_url, data=self.params, verify=False)
+                if self.files is None:
+                    sendit = requests.post(self.sab_url, data=self.params, verify=False)
+                else:
+                    sendit = requests.post(self.sab_url, data=self.params, files=self.files, verify=False)
         except Exception as e:
             logger.warn('Failed to send to client. Error returned: %s' % e)
             return {'status': False}
