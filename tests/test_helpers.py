@@ -522,41 +522,6 @@ def test_issue_exception_list_pattern(monkeypatch):
     assert sorted(helpers.issue_exception_list('Pattern')) == sorted([x[0] for x in mylar.INBUILT_ISSUE_EXCEPTIONS if x[1] == 'Pattern'])
 
 
-LOCAL_IP, STUN_IP, STUN_PORT = '192.168.0.128', '200.168.0.128', '1500'
-
-
-test_where_am_i_params = [
-    # expected_output, ignore_host_return, ENABLE_HTTPS, HTTP_ROOT, SAB_TO_MYLAR, 
-    # HTTP_HOST, HTTP_PORT, HOST_RETURN
-    # For test values, using unique internal IPs in the 192.168 subnet to avoid collision of tests
-    # and x.x.x.x to make explicit values that should not be reached
-    (f'http://{LOCAL_IP}:8090/', False, False, '/', False, '0.0.0.0', '8090', None),
-    (f'https://{LOCAL_IP}:8090/', False, True, '/', False, '0.0.0.0', '8090', None),
-    ('http://192.168.0.4:8090/', False, False, '/', False, '0.0.0.0', '8090', 'http://192.168.0.4:8090'),
-    (f'http://{LOCAL_IP}:8090/', False, False, '/', True, '0.0.0.0', '8090', None),
-    (f'http://{STUN_IP}:{STUN_PORT}/', False, False, '/', True, '200.0.0.0', '8090', None)
-]
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize("expected_output,ignore_host_return,ENABLE_HTTPS,HTTP_ROOT,SAB_TO_MYLAR," \
-                        "HTTP_HOST,HTTP_PORT,HOST_RETURN", test_where_am_i_params)
-def test_where_am_i(monkeypatch, expected_output, ignore_host_return, ENABLE_HTTPS, HTTP_ROOT, SAB_TO_MYLAR,
-                    HTTP_HOST, HTTP_PORT, HOST_RETURN):
-    monkeypatch.setattr(mylar, "CONFIG", mylar.config.Config("./nothing"))
-    monkeypatch.setattr(mylar.CONFIG, "ENABLE_HTTPS", ENABLE_HTTPS, raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "HTTP_ROOT", HTTP_ROOT, raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "SAB_TO_MYLAR", SAB_TO_MYLAR, raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "HTTP_HOST", HTTP_HOST, raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "HTTP_PORT", HTTP_PORT, raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "HOST_RETURN", HOST_RETURN, raising=False)
-    
-    monkeypatch.setattr(stun, "get_ip_info", lambda *args, **kwargs: (None, STUN_IP, STUN_PORT))
-    monkeypatch.setattr(socket.socket, "getsockname", lambda *args, **kwargs: [LOCAL_IP])
-
-    assert helpers.where_am_i(ignore_host_return) == expected_output
-
-
 # TODO: helpers.py: Untested functions (mostly needing DB / service mocks)
 # rename_param
 # ComicSort

@@ -6861,7 +6861,6 @@ class WebInterface(object):
                     "http_root": mylar.CONFIG.HTTP_ROOT,
                     "http_pass": mylar.CONFIG.HTTP_PASSWORD,
                     "instance_name" : mylar.CONFIG.INSTANCE_NAME,
-                    "host_return" : mylar.CONFIG.HOST_RETURN,
                     "enable_https": helpers.checked(mylar.CONFIG.ENABLE_HTTPS),
                     "https_cert": mylar.CONFIG.HTTPS_CERT,
                     "https_key": mylar.CONFIG.HTTPS_KEY,

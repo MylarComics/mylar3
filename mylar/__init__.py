@@ -310,7 +310,7 @@ def initialize(config_file):
                 s.close()
                 logger.info('Successfully discovered local IP and locking it in as : ' + str(LOCAL_IP))
             except:
-                logger.warn('Unable to determine local IP - this might cause problems when downloading (maybe use host_return in the config.ini)')
+                logger.warn('Unable to determine local IP')
                 LOCAL_IP = CONFIG.HTTP_HOST
 
 
