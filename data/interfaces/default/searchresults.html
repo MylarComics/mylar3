@@ -61,7 +61,7 @@
         <div class="table_wrapper" id="search_wrapper">
 
             %if search_type != 'story_arc':
-            <div id="checkboxControls" name="checkboxControls" style="float:right;vertical-align:middle;margin:5px 3px 8px 3px;">
+            <div id="checkboxControls" name="checkboxControls" style="display:none;">
                 <label for="hide_already" class="checkbox inline">
                     <input type="checkbox" name="hide_already" id="hide_already" /> Hide already in library
                 </label>
@@ -401,6 +401,14 @@
 
         var lastChecked = null;
 
+        function placeSearchFilters(){
+            var checkboxControls = $('#checkboxControls');
+            var filter = $('#searchresults_table_filter');
+            if (checkboxControls.length && filter.length) {
+                checkboxControls.prependTo(filter).css('display', 'inline-flex');
+            }
+        }
+
         function initThisPage(){
                 initActions();
                 var search_type = "${search_type}";
@@ -544,6 +552,7 @@
                      "drawCallback": function (settings) {
                          // Jump to top of page
                          $('#searchresults_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                         placeSearchFilters();
                      },
                      "serverData": function ( sSource, aoData, fnCallback ) {
                                 /* Add some extra data to the sender */
@@ -556,8 +565,11 @@
                      },
                      "fnInitComplete": function(oSettings, json)
                      {
+                         placeSearchFilters();
                      },
                 });
+
+                placeSearchFilters();
 
                 $('#searchresults_table tbody').on('click', 'input[type="checkbox"]', function(e){
                 var chkboxes = Array.from($(":checkbox"));
