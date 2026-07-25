@@ -1,0 +1,75 @@
+#markcomics .action-buttons,
+#markissues .action-buttons {
+    margin-bottom: 12px;
+}
+#markcomics .action-label,
+#markissues .action-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+#markcomics .action-button-group,
+#markissues .action-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#markcomics .action-row,
+#markissues .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+#markcomics .manage-action,
+#markissues .manage-action {
+    flex: 1;
+    min-width: 160px;
+    text-align: center;
+}
+#markcomics .manage-action[data-action="delete"] {
+    background-color: #a94442;
+}
+#markcomics .selected-counter,
+#markissues .selected-counter {
+    margin-top: 10px;
+    font-weight: bold;
+}
+#action-confirm,
+#issue-action-confirm {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+}
+#action-confirm.hidden,
+#issue-action-confirm.hidden {
+    display: none;
+}
+#action-confirm .action-confirm-buttons,
+#issue-action-confirm .action-confirm-buttons {
+    margin-top: 8px;
+    display: flex;
+    gap: 10px;
+}
+#action-confirm .action-confirm-buttons input[type="button"],
+#issue-action-confirm .action-confirm-buttons input[type="button"] {
+    flex: 0 0 120px;
+}
+
+.manage-switch-links {
+    margin-top: 10px;
+}
+
+.manage-switch-links a {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #2d7bf4;
+    color: #fff;
+    border-radius: 3px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.manage-switch-links a:hover {
+    background: #1e5ec0;
+}
