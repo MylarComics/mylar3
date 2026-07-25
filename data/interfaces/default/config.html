@@ -370,8 +370,14 @@
                           <fieldset>
                                 <legend>Permissions</legend>
                                 <div class="row checkbox">
-                                   <input type="checkbox" name="enforce_perms" id="enforce_perms" value="1" ${config['enforce_perms']} /><label>Enforce Permissions</label>
+                                    <input type="checkbox" name="enforce_perms" id="enforce_perms" value="1" ${config['enforce_perms']} ${'disabled' if mylar.INSTALL_TYPE == 'docker' else ''}/><label>Enforce Permissions</label>
+                                    % if mylar.INSTALL_TYPE == 'docker':
+                                    <div>
+                                    <small>Permissions for docker should be defined by the user running the app in the container</small>
+                                    </div>
+                                    % endif
                                 </div>
+                                 %if mylar.INSTALL_TYPE != 'docker':
                                 <div id="perm_options">
                                     <div class="row">
                                         <label>Directory CHMOD</label>
@@ -396,6 +402,7 @@
                                         </div>
                                     %endif 
                                 </div>
+                                %endif
 	                </fieldset>
                 </td>
             </tr>
