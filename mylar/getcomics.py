@@ -1083,6 +1083,7 @@ class GC(object):
             if self.oneoff is None:
                 self.oneoff = comicinfo[0]['oneoff']
 
+            tmp_filename = '%s (%s)' % (x['series'], x['year'])
             ctrlval = {'id': mod_id}
             vals = {
                 'series': x['series'],
@@ -1096,18 +1097,12 @@ class GC(object):
                 'site': 'DDL(GetComics)',
                 'pack': x['pack'],
                 'link_type': link_type,
+                'tmp_filename': tmp_filename,
+                'jd2_job_id': None,
                 'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'status': 'Queued',
             }
             myDB.upsert('ddl_info', vals, ctrlval)
-
-            #tmp_filename = None
-            #if any([link_type == 'Mega', link_type == 'Mega Link']):
-                # this is needed so that we assign some tmp filename
-                # (it will get renamed upon completion anyways)
-                #tmp_filename = comicinfo[0]['nzbtitle']
-                
-            tmp_filename = '%s (%s)' % (x['series'], x['year'])    
 
             queue_payload = {
                 'link': x['links'],
