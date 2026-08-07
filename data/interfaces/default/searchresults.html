@@ -190,16 +190,16 @@
             });
         }
 
-        function addseries(comicid, query_id, com_location, booktype){
+        function addseries(comicid){
             //var markupcoming = document.getElementById("markupcoming").checked;
             //var markall = document.getElementById("markall").checked;
 
-            if(typeof(com_location) === "undefined" || com_location === null){
-                com_location = null;
-            }
-            if(typeof(booktype) === "undefined" || booktype === null){
-                booktype = null;
-            }
+            var query_id = retrieve_searchquery();
+            var location_input = document.getElementById("com_location_" + comicid);
+            var booktype_input = document.getElementById("booktype_" + comicid);
+            var com_location = location_input ? location_input.value : null;
+            var booktype = booktype_input ? booktype_input.value : null;
+
             console.log('com_location:'+com_location);
 
             if (addingComics[String(comicid)]) {
@@ -230,6 +230,7 @@
                      addLink.removeAttr('aria-disabled').css('pointer-events', '');
                  }
             });
+            return false;
         }
 
         // get the click value from the last column (options).
@@ -244,11 +245,11 @@
                 var dataline = $('#searchresults_table').DataTable().row(this.closest('tr')).data();
                 console.log(dataline);
                 console.log('action:'+action);
-                comicid = dataline[0];
-                query_id = retrieve_searchquery(); 
+                var comicid = dataline[0];
+                var query_id = retrieve_searchquery();
                 //query_id = dataline[10];
                 if (action.startsWith('addbyid')) {
-                    addseries(comicid, query_id);
+                    addseries(comicid);
                 } else if (action.startsWith('addbyarcid')) {
                     addstoryarc(comicid, query_id);
                 } else if (action == 'extend_detail'){
@@ -270,7 +271,8 @@
                         // Open this row
                         var cv = editTHEResults(comicid,null,null,query_id).then( response );
                         cv.done(function(data){
-                            dc = JSON.parse(data);
+                            var dc = JSON.parse(data);
+                            var cdescription;
                             const regex = /\\n|\\r\\n|\\n\\r|\\r/g;
                             dc.description.replace(regex, '<br>');
                             if (dc.description.length > 300) {
@@ -283,7 +285,7 @@
                                 }
                             }
 
-                            var dropdown = "<select name='booktype' id='booktype' onChange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
+                            var dropdown = "<select name='booktype' id='booktype_"+comicid+"' style='font-size:14px;'>"+
                                "<option value='Print' selected='selected'>Print</option>" +
                                "<option value='TPB'>TPB</option>" +
                                "<option value='HC'>HC</option>" +
@@ -292,23 +294,32 @@
                                "<option value='Digital'>Digital</option>" +
                                "</select>";
 
-                            location_line = '<input type="text" id="com_location" name="com_location" style="line-height:1.25em;font-size:14px" value="'+dc.comlocation+'" size="60em" onChange="update_location('+comicid+', location, null)" /></a>';
-                            the_line =  '<form name="add_the_series"><table cellpadding="5" cellspacing="0" border="0" style="background-color:#0A0A0A;padding-left:50px;">'+
+                            var location_line = '<input type="text" id="com_location_'+comicid+'" name="com_location" style="line-height:1.25em;font-size:14px" value="'+dc.comlocation+'" size="60em" />';
+                            var the_line =  '<table cellpadding="5" cellspacing="0" border="0" style="background-color:#0A0A0A;padding-left:50px;">'+
                                             '<tr>'+
                                                  '<td width="133"><img id="comicimage" style="float:left;padding-right:10px;padding-bottom:5px;" src="data:image/jpeg;base64,'+dc.image+'" height="200" width="132" /></td>'+
                                                  '<td valign="top"><p>'+cdescription+'</p></td>'+
-                                                 '<td valign="bottom" align="right"><input type="button" name="Add" style="float:right;bottom:20px;" value="Add" onclick="return addseries(comicid, query_id, dc.comlocation, dc.booktype)" />'+
+                                                 '<td valign="bottom" align="right"><input type="button" id="add_series_'+comicid+'" name="Add" style="float:right;bottom:20px;" value="Add" />'+
                                             '</tr>'+
                                             '<tr>'+
                                                   '<td>Comic Location:</td>'+
                                                   '<td>'+location_line+'<span style="float:right;">&nbsp&nbsp&nbsp'+
-                                                  '<input type="button" name="Regenerate" title="Regenerate directory value using new values" value="Regenerate" onclick="return addseries(comicid, query_id, dc.comlocation, dc.booktype)" /></span>'+
+                                                  '<input type="button" id="regenerate_location_'+comicid+'" name="Regenerate" title="Regenerate directory value using new values" value="Regenerate" /></span>'+
                                                   '<span style="float:right;">'+dropdown+'</span></td>'+
                                             '</tr>'+
-                                            '</table></form>';
+                                            '</table>';
                             row.child( the_line ).show();
                             tr.addClass('shown');
-                            drop_the_down(dc.booktype);
+                            drop_the_down(dc.booktype, comicid);
+                            document.getElementById("add_series_" + comicid).onclick = function() {
+                                return addseries(comicid);
+                            };
+                            document.getElementById("regenerate_location_" + comicid).onclick = function() {
+                                return regenerate_location(comicid);
+                            };
+                            document.getElementById("booktype_" + comicid).onchange = function() {
+                                return regenerate_location(comicid);
+                            };
                             document.getElementById("loading_spinner_"+comicid).style.display = "none";
                         });
                     }
@@ -316,37 +327,21 @@
             }
         });
 
-        function update_location(comicid, comlocation, btype){
-            var location = document.getElementById("com_location");
-            var bktype = document.getElementById("booktype");
-            var booktype = bktype.options[bktype.selectedIndex];
+        function regenerate_location(comicid){
+            var location = document.getElementById("com_location_" + comicid);
+            var bktype = document.getElementById("booktype_" + comicid);
             var query_id = retrieve_searchquery();
-            if (comlocation){
-                cloc = location.value;
-            } else {
-                cloc = null;
-            }
-            if (btype){
-                bt = booktype.text;
-            } else { 
-                bt = null;
-            }
-            //boomers = editTHEResults(comicid, location.value, booktype.text, query_id, true);
-            boomers = editTHEResults(comicid, cloc, bt, query_id, true);
+
+            var boomers = editTHEResults(comicid, null, bktype.value, query_id, true);
             boomers.done(function(data){
-                dc = JSON.parse(data);
-                if (cloc){
-                    location.value = dc.comlocation;
-                }
-                if (btype) {
-                    bktype.text = dc.booktype;
-                    location.value = dc.comlocation;
-                }
+                var dc = JSON.parse(data);
+                location.value = dc.comlocation;
            });
+            return false;
         }
 
-        function drop_the_down(booktype) {
-            var mySelect = document.getElementById("booktype");
+        function drop_the_down(booktype, comicid) {
+            var mySelect = document.getElementById("booktype_" + comicid);
 
             for(var i, j = 0; i = mySelect.options[j]; j++) {
                 if(i.value == booktype) {
