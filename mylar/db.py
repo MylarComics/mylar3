@@ -146,7 +146,10 @@ class DBConnection:
                     if any(['unable to open database file' in e.args[0], 'database is locked' in e.args[0]]):
                         logger.warn('Database Error: %s' % e)
                         logger.warn('sqlresult: %s' %  query)
+                        self.connection.rollback()
                         attempt += 1
+                        if attempt >= 5:
+                            raise
                         time.sleep(1)
                     else:
                         logger.error('Database error executing %s :: %s' % (query, e))
