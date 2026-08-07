@@ -99,7 +99,7 @@ class SABnzbd(object):
             queueresponse = h.json()
             logger.fdebug('successfully queried the queue for status')
             try:
-                if queueresponse['noofslots'] == 1: # 1 means it matched to one instance
+                if queueresponse['queue']['noofslots'] == 1: # 1 means it matched to one instance
                     queueinfo = queueresponse['queue']['slots'][0]
                     logger.info('monitoring ... detected download - %s [%s]' % (queueinfo['filename'], queueinfo['status']))
             except Exception as e:
