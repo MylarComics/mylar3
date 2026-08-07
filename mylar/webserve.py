@@ -1071,7 +1071,7 @@ class WebInterface(object):
         })
     loadAnnualDetails.exposed = True
 
-    def loadSearchResults(self, query=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", **kwargs):
+    def loadSearchResults(self, query=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", hide_already='0', hide_tpb='0', **kwargs):
 
         logger.fdebug('query: %s' % query)
         if query is None:
@@ -1079,7 +1079,12 @@ class WebInterface(object):
             logger.fdebug('search_query: %s' % query)
 
         myDB = db.DBConnection()
-        queryline = "SELECT * FROM tmp_searches WHERE query_id=?" # ORDER BY %s" % sortcolumn
+        queryline = """
+            SELECT tmp_searches.*, comics.Status AS library_status
+            FROM tmp_searches
+            LEFT JOIN comics ON comics.ComicID = tmp_searches.comicid
+            WHERE tmp_searches.query_id=?
+        """
         db_results = myDB.select(queryline, [query])
         if not db_results:
             try:
@@ -1104,7 +1109,7 @@ class WebInterface(object):
                                 'url': rt['url'],
                                 'type': rt['type'],
                                 'description': rt['description'],
-                                'haveit': rt['haveit'],
+                                'haveit': 'Yes' if rt['haveit'] == 'Adding' and rt['library_status'] == 'Active' else rt['haveit'],
                                 'query_id': rt['query_id']})
 
         if not results:
@@ -1113,6 +1118,7 @@ class WebInterface(object):
                 'iTotalRecords': 0,
                 'aaData': [],
             })
+        total_records = len(results)
         if sSearch == "" or sSearch == None:
             filtered = results[::]
         else:
@@ -1156,6 +1162,13 @@ class WebInterface(object):
                 except Exception as e:
                     pass
 
+        hide_already = str(hide_already).lower() in ('1', 'true', 'yes', 'on')
+        hide_tpb = str(hide_tpb).lower() in ('1', 'true', 'yes', 'on')
+        if hide_already:
+            filtered = [row for row in filtered if row['haveit'] != 'Yes']
+        if hide_tpb:
+            filtered = [row for row in filtered if (row['type'] or '').upper() != 'TPB']
+
         sortcolumn = 'comicname'
         if iSortCol_0 == '1':
             sortcolumn = 'comicname'
@@ -1172,6 +1185,7 @@ class WebInterface(object):
             filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
 
         logger.info('# of results: %s' % len(filtered))
+        total_display_records = len(filtered)
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
         # -1 is used for "All" in DataTables filters
@@ -1180,8 +1194,8 @@ class WebInterface(object):
         rows = [[row['comicid'], row['comicname'], row['publisher'], row['comicyear'], row['issues'], row['deck'], row['url'], row['type'], row['description'], row['haveit'], row['query_id']] for row in filtered]
 
         return json.dumps({
-            'iTotalDisplayRecords': len(results), #len(filtered),
-            'iTotalRecords': len(results),
+            'iTotalDisplayRecords': total_display_records,
+            'iTotalRecords': total_records,
             'aaData': rows,
         })
     loadSearchResults.exposed = True
@@ -1541,6 +1555,8 @@ class WebInterface(object):
                             'Total': comicinfo['ComicIssues']}
                     myDB.upsert( "comics", vals, {'ComicID': comicid} )
 
+        queue_error = None
+        queue_status = 'already_queued'
         if nothread is False:
             watch = []
             #if not any(ext['comicid'] == ComicID for ext in mylar.REFRESH_LIST):
@@ -1558,12 +1574,35 @@ class WebInterface(object):
                 logger.info('[SHIZZLE-WHIZZLE] Now queueing to add %s' % (og_line))
                 try:
                     importer.importer_thread(watch)
-                except Exception:
-                    pass
+                except Exception as e:
+                    queue_error = e
+                    logger.error('Unable to queue %s for addition: %s' % (og_line, e))
+                else:
+                    queue_status = 'queued'
 
             #threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
         else:
             return importer.addComictoDB(comicid, mismatch, None, imported, ogcname)
+
+        if query_id is not None and (calledby is True or calledby == 'True'):
+            if queue_error is not None:
+                return json.dumps({
+                    'status': 'failure',
+                    'message': 'Unable to queue this comic. Please check the logs.'
+                })
+
+            myDB.upsert(
+                'tmp_searches',
+                {'haveit': 'Adding'},
+                {'query_id': query_id, 'comicid': comicid}
+            )
+            return json.dumps({
+                'status': 'success',
+                'state': 'adding',
+                'queue_status': queue_status,
+                'comicid': comicid,
+                'message': 'Comic queued for addition.'
+            })
 
         if calledby is True or calledby == 'True':
            return

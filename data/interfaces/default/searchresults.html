@@ -60,6 +60,17 @@
 
         <div class="table_wrapper" id="search_wrapper">
 
+            %if search_type != 'story_arc':
+            <div id="checkboxControls" name="checkboxControls" style="display:none;">
+                <label for="hide_already" class="checkbox inline">
+                    <input type="checkbox" name="hide_already" id="hide_already" /> Hide already in library
+                </label>
+                <label for="hide_tpb" class="checkbox inline">
+                    <input type="checkbox" name="hide_tpb" id="hide_tpb" /> Hide TPB
+                </label>
+            </div>
+            %endif
+
             <form action="mark_the_results" method="get" id="markresults" name="markresults">
                <div style="position:absolute;float:left;display:none;" id="markresult">Mark selected series as
                     <select name="action" id="mark_results" onChange="mark_the_results()">
@@ -154,6 +165,31 @@
             });
         }
 
+        var addingComics = {};
+
+        function addingComicMarkup(){
+            return '<span class="adding-comic"><span class="ui-icon ui-icon-clock"></span>Adding comic</span>';
+        }
+
+        function markComicAdding(comicid){
+            addingComics[String(comicid)] = true;
+            var table = $('#searchresults_table').DataTable();
+
+            table.rows().every(function(){
+                var rowData = this.data();
+                if (rowData && String(rowData[0]) === String(comicid)) {
+                    rowData[9] = 'Adding';
+                    this.data(rowData);
+                    if (this.child.isShown()) {
+                        this.child.hide();
+                    }
+                    var rowNode = this.node();
+                    $(rowNode).removeClass('shown gradeY');
+                    $('td:last', rowNode).html(addingComicMarkup());
+                }
+            });
+        }
+
         function addseries(comicid){
             //var markupcoming = document.getElementById("markupcoming").checked;
             //var markall = document.getElementById("markall").checked;
@@ -165,19 +201,34 @@
             var booktype = booktype_input ? booktype_input.value : null;
 
             console.log('com_location:'+com_location);
-            $.when($.ajax({
+
+            if (addingComics[String(comicid)]) {
+                return false;
+            }
+
+            var addLink = $('#addbyid_' + comicid);
+            var spinner = $('#loading_spinner_' + comicid);
+            addLink.attr('aria-disabled', 'true').css('pointer-events', 'none');
+            spinner.show();
+
+            return $.ajax({
                  type: "GET",
                  url: "addbyid",
+                 dataType: "json",
                  data: { comicid: comicid, query_id: query_id, com_location: com_location, booktype: booktype}, //, markupcoming: markupcoming, markall: markall},
-                 success: function(response) {
-                    //obj = JSON.parse(response);
-                 },
-                 error: function(data)
-                     {
-                       alert('ERROR'+data.responseText);
-                     },
-            })).done(function(data) {
-                 //reload_table();
+            }).done(function(response) {
+                 if (response && response.status === 'success') {
+                     markComicAdding(comicid);
+                 } else {
+                     alert('ERROR: ' + ((response && response.message) || 'Unable to queue this comic.'));
+                 }
+            }).fail(function(data) {
+                 alert('ERROR: ' + (data.responseText || 'Unable to queue this comic.'));
+            }).always(function() {
+                 spinner.hide();
+                 if (!addingComics[String(comicid)]) {
+                     addLink.removeAttr('aria-disabled').css('pointer-events', '');
+                 }
             });
             return false;
         }
@@ -345,6 +396,14 @@
 
         var lastChecked = null;
 
+        function placeSearchFilters(){
+            var checkboxControls = $('#checkboxControls');
+            var filter = $('#searchresults_table_filter');
+            if (checkboxControls.length && filter.length) {
+                checkboxControls.prependTo(filter).css('display', 'inline-flex');
+            }
+        }
+
         function initThisPage(){
                 initActions();
                 var search_type = "${search_type}";
@@ -433,12 +492,15 @@
                                        displayline = '<a id="alreadyhave" name="alreadyhave" href="detailStoryArc?StoryArcID=' + full[0] + '&StoryArcName=' + full[1] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
                                    }
                                } else {
-                                   if (full[9] === "No") {
+                                   if (full[9] === "Yes") {
+                                       delete addingComics[String(full[0])];
+                                       displayline = '<a id="alreadyhave" name="alreadyhave" href="comicDetails?ComicID=' + full[0] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
+                                   } else if (full[9] === "Adding" || addingComics[String(full[0])]) {
+                                       displayline = addingComicMarkup();
+                                   } else {
                                        displayline = '<a id="extend_detail" name="extend_detail" href="#"><span class="ui-icon ui-icon-plus"></span>Edit</a>';
                                        displayline += '<a id="addbyid_'+full[0]+'" name="addbyid" href="#"><span class="ui-icon ui-icon-plus"></span>Add this Comic</a>';
                                        displayline += '<span id="loading_spinner_'+full[0]+'" style="display:none;float:right;"><img src="images/loader_black.gif"  height="20" width="20" alt="loading"/></span>';
-                                   } else {
-                                       displayline = '<a id="alreadyhave" name="alreadyhave" href="comicDetails?ComicID=' + full[0] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
                                    }
                                }
                                return displayline;
@@ -458,17 +520,18 @@
                          "infoFiltered":"(filtered from _MAX_ total issues)"
                     },
                     "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                        var inLibrary = aData[9] === "Yes";
                         if (aData[7] === "Digital" || aData[7] === "TPB" || aData[7] === "GN" || aData[7] == "HC") {
-                            if (aData[9] === "No") {
-                                $('td', nRow).closest('tr').addClass("gradeZ");
-                            } else {
+                            if (inLibrary) {
                                 $('td', nRow).closest('tr').addClass("gradeH");
+                            } else {
+                                $('td', nRow).closest('tr').addClass("gradeZ");
                             }
                          } else {
-                            if (aData[9] === "No") {
-                                $('td', nRow).closest('tr').addClass("gradeB");
-                            } else {
+                            if (inLibrary) {
                                 $('td', nRow).closest('tr').addClass("gradeH");
+                            } else {
+                                $('td', nRow).closest('tr').addClass("gradeB");
                             }
                          }
                          nRow.children[0].id = 'select';
@@ -484,18 +547,24 @@
                      "drawCallback": function (settings) {
                          // Jump to top of page
                          $('#searchresults_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                         placeSearchFilters();
                      },
                      "serverData": function ( sSource, aoData, fnCallback ) {
                                 /* Add some extra data to the sender */
                                 aoData.push({"name": "search_query", "value": retrieve_searchquery() });
+                                aoData.push({"name": "hide_already", "value": $('#hide_already').is(':checked') ? "1" : "0" });
+                                aoData.push({"name": "hide_tpb", "value": $('#hide_tpb').is(':checked') ? "1" : "0" });
                                 $.getJSON(sSource, aoData, function (json) {
                                         fnCallback(json)
                                 });
                      },
                      "fnInitComplete": function(oSettings, json)
                      {
+                         placeSearchFilters();
                      },
                 });
+
+                placeSearchFilters();
 
                 $('#searchresults_table tbody').on('click', 'input[type="checkbox"]', function(e){
                 var chkboxes = Array.from($(":checkbox"));

@@ -42,6 +42,27 @@
 	    font-size: 15px;
 	    padding: 2px 4px;
 }
+#searchresults_table_filter {
+	width: 100%;
+	display: flex;
+	align-items: center;
+}
+#searchresults_table_filter #checkboxControls {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin-right: auto;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+#searchresults_table .adding-comic {
+	white-space: nowrap;
+}
+#searchresults_table .adding-comic .ui-icon {
+	display: inline-block;
+	position: relative;
+	top: 3px;
+}
 .dataTables_info {
 	width: 50%;
 	float: left;

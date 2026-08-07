@@ -60,7 +60,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             shutil.copy(filepath, new_filepath)
         else:
             shutil.copy(filepath, new_filepath)
+
         filepath = new_filepath
+        original_perms = os.stat(filepath).st_mode
     except Exception as e:
         logger.warn('%s Unexpected Error: %s [%s]' % (module, sys.exc_info()[0], e))
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
@@ -326,6 +328,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     return 'fail'
                 else:
                     logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
+                    # CT version in use currently blitzes the original perms on the file, so this restores them
+                    os.chmod(filepath, original_perms)
                 i+=1
         except OSError as e:
             logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))))
