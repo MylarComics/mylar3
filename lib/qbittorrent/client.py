@@ -108,7 +108,7 @@ class Client(object):
                                   data={'username': username,
                                         'password': password},
                                   verify=self.verify)
-        if login.text == 'Ok.':
+        if login.status_code == 204 or login.text == 'Ok.':
             self._is_authenticated = True
         else:
             return login.text
