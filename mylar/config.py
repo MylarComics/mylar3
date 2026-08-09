@@ -25,6 +25,7 @@ import codecs
 import shutil
 import re
 import configparser
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 import mylar
 from mylar import logger, helpers, encrypted, filechecker, db, maintenance
@@ -1521,11 +1522,12 @@ class Config(object):
                 self.OPDS_ENDPOINT = self.OPDS_ENDPOINT[:-1]
             config.set('OPDS', 'opds_endpoint', self.OPDS_ENDPOINT.strip())
 
-        #comictagger - force to use included version if option is enabled.
-        import comictaggerlib.ctversion as ctversion
-        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
-        #if any([self.ENABLE_META, self.CBR2CBZ_ONLY]):
-        mylar.CMTAGGER_PATH = mylar.PROG_DIR
+        # ComicTagger is installed from requirements.txt, rather than using
+        # Mylar's former vendored copy.
+        try:
+            logger.info('[COMICTAGGER] Version detected: %s' % version('comictagger'))
+        except PackageNotFoundError:
+            logger.warn('[COMICTAGGER] The pinned comictagger dependency is not installed. Metatagging will be unavailable.')
 
         if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
             setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')

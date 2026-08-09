@@ -8266,7 +8266,7 @@ class WebInterface(object):
 
             metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True, readingorder=readingorder, agerating=agerating)
         except ImportError:
-            logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/ directory.')
+            logger.warn(module + ' ComicTagger integration could not be imported. Install the pinned comictagger requirement.')
             metaresponse = "fail"
 
         if metaresponse == "fail":

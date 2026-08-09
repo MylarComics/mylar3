@@ -12,8 +12,7 @@ import shutil
 import time
 import zipfile
 import subprocess
-from packaging.version import parse as parse_version
-from subprocess import CalledProcessError, check_output
+from urllib.parse import urlsplit, urlunsplit
 import mylar
 
 from mylar import logger, notifiers
@@ -26,12 +25,17 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     logger.fdebug(module + ' dirName:' + dirName)
 
-    # 2015-11-23: Recent CV API changes restrict the rate-limit to 1 api request / second.
-    # ComicTagger has to be included now with the install as a timer had to be added to allow for the 1/second rule.
-    comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-    logger.fdebug('ComicTagger Path location for internal comictagger.py set to : ' + comictagger_cmd)
-
-    # Force mylar to use cmtagger_path = mylar.PROG_DIR to force the use of the included lib.
+    # Use the console script installed with the pinned upstream dependency.
+    # The fallback covers virtual environments whose bin directory is not on PATH.
+    comictagger_cmd = shutil.which('comictagger')
+    if comictagger_cmd is None:
+        candidate = os.path.join(os.path.dirname(sys.executable), 'comictagger')
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            comictagger_cmd = candidate
+    if comictagger_cmd is None:
+        logger.warn(module + '[WARNING] ComicTagger is not installed. Install requirements.txt and retry metatagging.')
+        return 'fail'
+    logger.fdebug('ComicTagger executable: ' + comictagger_cmd)
 
     logger.fdebug(module + ' Filename is : ' + filename)
 
@@ -60,9 +64,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             shutil.copy(filepath, new_filepath)
         else:
             shutil.copy(filepath, new_filepath)
-
         filepath = new_filepath
-        original_perms = os.stat(filepath).st_mode
     except Exception as e:
         logger.warn('%s Unexpected Error: %s [%s]' % (module, sys.exc_info()[0], e))
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
@@ -87,10 +89,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     ##set up default comictagger options here.
     #used for cbr - to - cbz conversion
     #depending on copy/move - eitehr we retain the rar or we don't.
+    cbr2cbzoptions = ["--config", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
     if mylar.CONFIG.FILE_OPTS == 'move':
-        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e", "--delete-rar"]
-    else:
-        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
+        cbr2cbzoptions.append("--delete-rar")
 
     tagoptions = ["-s"]
 
@@ -112,61 +113,57 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         if comversion is not None:
             cvers = 'volume=%s' % comversion
 
-    if readingorder is not None:
-        if type(readingorder) == list:
-            orderseq = []
-            arcseq = []
-            for osq in readingorder:
-                orderseq.append(str(osq[1]))
-                arcseq.append(osq[0])
-            arcseqn = ','.join(arcseq).strip()
-            arcseqname = re.sub(r',', '^,', arcseqn).strip()
-            ordersn = ','.join(orderseq).strip()
-            orders = re.sub(r',', '^,', ordersn).strip()
-            rorder = 'storyArcNumber=%s, storyArc=%s' % (orders, arcseqname)
-        else:
-            roder = 'storyArcNumber=%s' % readingorder
-    else:
-        rorder = 'storyArcNumber='
-
-    if all([agerating is not None, agerating != 'None']):
-        arating = 'ageRating=%s' % (agerating)
-    else:
-        arating = 'ageRating='
-
-    tline = '%s, %s, %s' % (cvers, rorder, arating)
-    tagoptions.extend(["-m", tline])
+    storyarc = ''
+    if isinstance(readingorder, list):
+        storyarc = re.sub(r',', '^,', ','.join(osq[0] for osq in readingorder).strip())
+    maturity_rating = agerating if all([agerating is not None, agerating != 'None']) else ''
+    tagoptions.extend(["-m", 'volume=%s, story_arc=%s, maturity_rating=%s' % (
+        cvers.replace('volume=', '', 1), storyarc, maturity_rating,
+    )])
 
     try:
-        #from comictaggerlib import ctversion
-        ct_check = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        #logger.warn(module + "[WARNING] "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+        # ComicTagger 1.5.5 exits 1 after printing --version; its banner is
+        # the successful health-check signal instead of the return code.
+        ct_process = subprocess.run(
+            [comictagger_cmd, "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        ct_check = ct_process.stdout
+    except OSError:
         logger.warn(module + '[WARNING] Make sure that you are using the comictagger included with Mylar.')
         tidyup(filepath, new_filepath, new_folder, manualmeta)
         return "fail"
 
     logger.info('ct_check: %s' % ct_check)
-    ctend = str(ct_check).find('[')
-    ct_version = re.sub("[^0-9]", "", str(ct_check)[:ctend])
-    if parse_version(ct_version) >= parse_version('1.3.1'):
-        if any([mylar.CONFIG.COMICVINE_API == 'None', mylar.CONFIG.COMICVINE_API is None]):
-            logger.fdebug('%s ComicTagger v.%s being used - no personal ComicVine API Key supplied. Take your chances.' % (module, ct_version))
-            use_cvapi = "False"
-        else:
-            logger.fdebug('%s ComicTagger v.%s being used - using personal ComicVine API key supplied via mylar.' % (module, ct_version))
-            use_cvapi = "True"
-            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "--notes_format", mylar.CONFIG.CT_NOTES_FORMAT])
-            cv_api_url = getattr(mylar.CONFIG, "COMICVINE_URL", None)
-            if cv_api_url:
-                cv_api_url = cv_api_url.strip().rstrip("/")
-            if not cv_api_url:
-                cv_api_url = "https://comicvine.gamespot.com/api"
+    if b'ComicTagger ' not in ct_check:
+        logger.warn(module + '[WARNING] Unable to start the bundled ComicTagger.')
+        tidyup(filepath, new_filepath, new_folder, manualmeta)
+        return "fail"
 
-            tagoptions.extend(["--cv-api-url", cv_api_url])
+    if any([mylar.CONFIG.COMICVINE_API == 'None', mylar.CONFIG.COMICVINE_API is None]):
+        logger.fdebug('%s No personal ComicVine API key supplied. Take your chances.' % module)
     else:
-        logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
-        use_cvapi = "False"
+        logger.fdebug('%s Using the personal ComicVine API key supplied via Mylar.' % module)
+        tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--config", mylar.CONFIG.CT_SETTINGSPATH])
+        cv_api_url = getattr(mylar.CONFIG, "COMICVINE_URL", None)
+        if cv_api_url:
+            cv_api_url = cv_api_url.strip().rstrip("/")
+        if not cv_api_url:
+            cv_api_url = "https://comicvine.gamespot.com/api"
+
+        # The configured value is an API base URL.  A bare host (for example
+        # https://fv.titor.dev) needs the standard /api path used upstream.
+        parsed_url = urlsplit(cv_api_url)
+        if parsed_url.path in ('', '/'):
+            cv_api_url = urlunsplit((
+                parsed_url.scheme,
+                parsed_url.netloc,
+                '/api',
+                parsed_url.query,
+                parsed_url.fragment,
+            ))
+        tagoptions.extend(["--cv-url", cv_api_url])
 
     i = 1
     tagcnt = 0
@@ -204,7 +201,6 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     original_tagoptions = tagoptions
     og_tagtype = None
     initial_ctrun = True
-    error_remove = False
 
     while (i <= tagcnt):
         if initial_ctrun:
@@ -231,7 +227,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
             logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
 
-        currentScriptName = [sys.executable, comictagger_cmd]
+        currentScriptName = [comictagger_cmd]
         script_cmd = currentScriptName + f_tagoptions
 
         if initial_ctrun:
@@ -259,14 +255,16 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug('%s[COMIC-TAGGER] : %s' % (module, out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)
-                if 'Error deleting' in filepath:
-                    tf1 = out.find('exported successfully to: ')
-                    tmpfilename = out[tf1 + len('exported successfully to: '):].strip()
-                    error_remove = True
-                else:
-                    tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
-                if mylar.CONFIG.FILE_OPTS == 'move':
-                    tmpfilename = re.sub(r'\(Original deleted\)', '', tmpfilename).strip()
+                exported = re.search(
+                    r'^(?:Archive )?exported successfully to:\s*(.+?)(?:\s+\(Original deleted\))?\s*$',
+                    out,
+                    re.IGNORECASE | re.MULTILINE,
+                )
+                if exported is None:
+                    logger.warn('%s[COMIC-TAGGER] Could not determine the exported CBZ filename.' % module)
+                    tidyup(og_filepath, new_filepath, new_folder, manualmeta)
+                    return 'fail'
+                tmpfilename = exported.group(1).strip()
                 tmpf = tmpfilename
                 filepath = os.path.join(comicpath, tmpf)
                 if filename.lower() != tmpf.lower() and tmpf.endswith('(1).cbz'):
@@ -291,9 +289,15 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
                 logger.fdebug('%s[COMIC-TAGGER][CBR-TO-CBZ] New filename: %s' % (module, filepath))
                 initial_ctrun = False
-            elif initial_ctrun and 'Archive is not a RAR' in out:
+            elif initial_ctrun and any([
+                'archive is not a rar' in out.lower(),
+                'archive is already a zip file' in out.lower(),
+            ]):
                 logger.fdebug('%s Output: %s' % (module,out))
-                logger.warn('%s[COMIC-TAGGER] file is not in a RAR format: %s' % (module, filename))
+                if 'archive is already a zip file' in out.lower():
+                    logger.fdebug('%s[COMIC-TAGGER] Archive is already CBZ; proceeding with tagging.' % module)
+                else:
+                    logger.warn('%s[COMIC-TAGGER] file is not in a RAR format: %s' % (module, filename))
                 initial_ctrun = False
             elif initial_ctrun:
                 initial_ctrun = False
@@ -328,8 +332,6 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     return 'fail'
                 else:
                     logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
-                    # CT version in use currently blitzes the original perms on the file, so this restores them
-                    os.chmod(filepath, original_perms)
                 i+=1
         except OSError as e:
             logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))))
