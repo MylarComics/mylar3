@@ -1529,9 +1529,16 @@ class Config(object):
         except PackageNotFoundError:
             logger.warn('[COMICTAGGER] The pinned comictagger dependency is not installed. Metatagging will be unavailable.')
 
-        if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
+        # ComicTagger 1.6 records the Comic Vine issue ID itself. The former
+        # CVDB/Issue ID selection was a setting of the bundled legacy tagger.
+        if self.CT_NOTES_FORMAT != 'Issue ID':
             setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
             config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
+
+        if self.CT_TAG_CBL:
+            logger.warn('[COMICTAGGER] ComicBookLover tags are unsupported by ComicTagger 1.6; disabling the obsolete option.')
+            setattr(self, 'CT_TAG_CBL', False)
+            config.set('Metatagging', 'ct_tag_cbl', 'False')
 
         #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
         if self.CT_SETTINGSPATH is None:
@@ -1573,56 +1580,6 @@ class Config(object):
                     logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
             else:
                 logger.fdebug('Successfully created ComicTagger Settings location.')
-
-        #make sure the user_agent is running a current version and write it to the .ComicTagger file for use with CT
-        if '42.0.2311.135' in self.CV_USER_AGENT:
-            self.CV_USER_AGENT = 'comictagger image fetcher'
-        if '122.0.0.0' in self.CV_USER_AGENT:
-            self.CV_USER_AGENT = 'comictagger image fetcher'
-
-        ct_settingsfile = os.path.join(self.CT_SETTINGSPATH, 'settings')
-        if os.path.exists(ct_settingsfile):
-            ct_config = configparser.ConfigParser()
-            def readline_generator(f):
-                line = f.readline()
-                while line:
-                    yield line
-                    line = f.readline()
-
-            ct_config.read_file(
-                readline_generator(codecs.open(ct_settingsfile, "r", "utf8")))
-
-            tmp_agent = None
-            if ct_config.has_option('comicvine', 'cv_user_agent'):
-                tmp_agent = ct_config.get('comicvine', 'cv_user_agent')
-
-            if tmp_agent != self.CV_USER_AGENT:
-                #update
-                try:
-                    with codecs.open(ct_settingsfile, 'r', 'utf8') as ct_read:
-                        ct_lines = ct_read.readlines()
-
-                    process_next = False
-                    cv_line = f'cv_user_agent = {self.CV_USER_AGENT}\n'
-                    with codecs.open(ct_settingsfile, encoding='utf8', mode='w+') as ct_file:
-                        for line in ct_lines:
-                            if 'cv_user_agent' in line:
-                                line = cv_line
-
-                            elif '[comicvine]' not in line and process_next:
-                                ct_file.write(cv_line)
-                                process_next = False
-
-                            if tmp_agent is None and '[comicvine]' in line:
-                                process_next = True
-
-                            ct_file.write(line)
-
-                    logger.fdebug('Updated CT Settings with new CV user agent string.')
-                except IOError as e:
-                    logger.warn("Error writing configuration file: %s" % e)
-            else:
-                logger.info('[CV_USER_AGENT] Agent already identical in comictagger session.')
 
         #make sure queues are running here...
         if startup is False:

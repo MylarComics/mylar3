@@ -54,7 +54,7 @@ import mylar.config
 
 #these are the globals that are runtime-based (ie. not config-valued at all)
 #they are referenced in other modules just as mylar.VARIABLE (instead of mylar.CONFIG.VARIABLE)
-MINIMUM_PY_VERSION = '3.8.1'
+MINIMUM_PY_VERSION = '3.10.0'
 PROG_DIR = None
 DATA_DIR = None
 FULL_PATH = None

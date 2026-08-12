@@ -3,6 +3,7 @@
 
 
 import os, errno
+import json
 import sys
 import re
 import glob
@@ -91,15 +92,16 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     #depending on copy/move - eitehr we retain the rar or we don't.
     cbr2cbzoptions = ["--config", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
     if mylar.CONFIG.FILE_OPTS == 'move':
-        cbr2cbzoptions.append("--delete-rar")
+        cbr2cbzoptions.append("--delete-original")
 
-    tagoptions = ["-s"]
+    # ComicTagger 1.6 accepts YAML for explicit metadata. JSON is valid YAML
+    # and keeps user-supplied story-arc names safely quoted.
+    tagmetadata = {}
 
-    cvers = "volume="
     if mylar.CONFIG.CMTAG_VOLUME:
         if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+            # comversion has already been converted to the start year by Mylar.
             pass
-            # comversion is already converted - just leaving this here so we know
         else:
             if mylar.CONFIG.SETDEFAULTVOLUME:
                 if any([comversion is None, comversion == '', comversion == 'None']):
@@ -110,19 +112,22 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     comversion = None
                 else:
                     comversion = re.sub('[^0-9]', '', comversion).strip()
-        if comversion is not None:
-            cvers = 'volume=%s' % comversion
+        if comversion not in (None, '', 'None'):
+            tagmetadata['volume'] = int(comversion)
 
-    storyarc = ''
     if isinstance(readingorder, list):
-        storyarc = re.sub(r',', '^,', ','.join(osq[0] for osq in readingorder).strip())
-    maturity_rating = agerating if all([agerating is not None, agerating != 'None']) else ''
-    tagoptions.extend(["-m", 'volume=%s, story_arc=%s, maturity_rating=%s' % (
-        cvers.replace('volume=', '', 1), storyarc, maturity_rating,
-    )])
+        story_arcs = [entry[0] for entry in readingorder if entry[0]]
+        if story_arcs:
+            tagmetadata['story_arcs'] = story_arcs
+    if all([agerating is not None, agerating != 'None']):
+        tagmetadata['maturity_rating'] = agerating
+
+    tagoptions = ["--config", mylar.CONFIG.CT_SETTINGSPATH, "-s", "--tags-write", "cr"]
+    if tagmetadata:
+        tagoptions.extend(["-m", json.dumps(tagmetadata)])
 
     try:
-        # ComicTagger 1.5.5 exits 1 after printing --version; its banner is
+        # ComicTagger 1.6.0b11.dev0 exits 1 after printing --version; its banner is
         # the successful health-check signal instead of the return code.
         ct_process = subprocess.run(
             [comictagger_cmd, "--version"],
@@ -145,7 +150,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         logger.fdebug('%s No personal ComicVine API key supplied. Take your chances.' % module)
     else:
         logger.fdebug('%s Using the personal ComicVine API key supplied via Mylar.' % module)
-        tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--config", mylar.CONFIG.CT_SETTINGSPATH])
+        tagoptions.extend(["--comicvine-key", mylar.CONFIG.COMICVINE_API])
         cv_api_url = getattr(mylar.CONFIG, "COMICVINE_URL", None)
         if cv_api_url:
             cv_api_url = cv_api_url.strip().rstrip("/")
@@ -163,25 +168,26 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 parsed_url.query,
                 parsed_url.fragment,
             ))
-        tagoptions.extend(["--cv-url", cv_api_url])
+        tagoptions.extend(["--comicvine-url", cv_api_url])
 
     i = 1
     tagcnt = 0
 
     if mylar.CONFIG.CBR2CBZ_ONLY:
         logger.fdebug(module + ' CBR2CBZ Conversion only.')
+        # The conversion is the first pass through the loop. A count of one
+        # lets conversion-only mode run without a tag-writing pass.
+        tagcnt = 1
     else:
         if mylar.CONFIG.CT_TAG_CR:
             tagcnt = 1
             logger.fdebug(module + ' CR Tagging enabled.')
 
         if mylar.CONFIG.CT_TAG_CBL:
-            if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
-            tagcnt = 2
-            logger.fdebug(module + ' CBL Tagging enabled.')
+            logger.warn(module + ' ComicBookLover metadata is unsupported by ComicTagger 1.6 and was skipped.')
 
     if tagcnt == 0 and not mylar.CONFIG.CBR2CBZ_ONLY:
-        logger.warn(module + ' You have metatagging enabled, but you have not selected the type(s) of metadata to write. Please fix and re-run manually')
+        logger.warn(module + ' ComicTagger 1.6 can write ComicRack metadata only. Enable ComicRack tagging and retry.')
         tidyup(filepath, new_filepath, new_folder, manualmeta)
         return "fail"
 
@@ -191,53 +197,30 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.fdebug(module + ' Will modify existing tag blocks even if it exists.')
         else:
             logger.fdebug(module + ' Will NOT modify existing tag blocks even if they exist already.')
-            tagoptions.extend(["--nooverwrite"])
+            tagoptions.append("--skip-existing-tags")
 
     if issueid is None:
         tagoptions.extend(["-f", "-o"])
     else:
         tagoptions.extend(["-o", "--id", issueid])
 
-    original_tagoptions = tagoptions
-    og_tagtype = None
     initial_ctrun = True
 
     while (i <= tagcnt):
         if initial_ctrun:
-            f_tagoptions = cbr2cbzoptions
-            f_tagoptions.extend([filepath])
+            f_tagoptions = list(cbr2cbzoptions) + [filepath]
         else:
-            if i == 1:
-                tagtype = 'cr'  # CR meta-tagging cycle.
-                tagdisp = 'ComicRack tagging'
-            elif i == 2:
-                tagtype = 'cbl'  # Cbl meta-tagging cycle
-                tagdisp = 'Comicbooklover tagging'
-
-            f_tagoptions = original_tagoptions
-
-            if og_tagtype is not None:
-                for index, item in enumerate(f_tagoptions):
-                    if item == og_tagtype:
-                        f_tagoptions[index] = tagtype
-            else:
-                f_tagoptions.extend(["--type", tagtype, filepath])
-
-            og_tagtype = tagtype
+            tagdisp = 'ComicRack tagging'
+            f_tagoptions = list(tagoptions) + [filepath]
 
             logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
 
         currentScriptName = [comictagger_cmd]
         script_cmd = currentScriptName + f_tagoptions
 
-        if initial_ctrun:
-            logger.fdebug('%s Enabling ComicTagger script with options: %s' % (module, f_tagoptions))
-            script_cmdlog = script_cmd
-
-        else:
-            logger.fdebug('%s Enabling ComicTagger script with options: %s' %(module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(f_tagoptions))))
-            # generate a safe command line string to execute the script and provide all the parameters
-            script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))
+        script_cmdlog = str(script_cmd)
+        if mylar.CONFIG.COMICVINE_API not in (None, 'None'):
+            script_cmdlog = script_cmdlog.replace(str(mylar.CONFIG.COMICVINE_API), 'REDACTED')
 
         logger.fdebug(module + ' Executing command: ' +str(script_cmdlog))
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
@@ -324,17 +307,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 file_error = 'file not found||%s' % filename
                 return file_error
             else:
-                if 'Save complete' not in out:
+                if 'Save complete' in out:
+                    logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
+                elif 'Already has Comic Rack tags. Not overwriting.' in out:
+                    logger.info('%s[COMIC-TAGGER] Existing ComicRack tags left unchanged [%s]' % (module, filepath))
+                else:
                     unknown_message = out
                     logger.warn('%s[COMIC-TAGGER][UNKNOWN-ERROR-DURING-METATAGGING] %s' % (module, unknown_message))
                     sendnotify('Error - %s' % (unknown_message), filename, module)
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'fail'
-                else:
-                    logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
                 i+=1
         except OSError as e:
-            logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))))
+            logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, script_cmdlog))
             tidyup(filepath, new_filepath, new_folder, manualmeta)
             return "fail"
         except Exception as e:

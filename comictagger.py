@@ -1,4 +1,4 @@
-from lib.comictaggerlib.main import ctmain
+from comictaggerlib.main import main
 
 if __name__ == '__main__':
-    ctmain()
+    raise SystemExit(main())
