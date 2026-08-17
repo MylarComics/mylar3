@@ -173,9 +173,9 @@ def test_LoadAlternateSearchNames(test, result):
 
 filesafe_tests = [
     ("", ""),
-    ("This is a — comic", "This is a  -  comic"),
-    ("This is a: comic", "This is a comic"),
-    ("This is a\ comic", "This is a comic"),
+    (r"This is a — comic", "This is a  -  comic"),
+    (r"This is a: comic", "This is a comic"),
+    (r"This is a\ comic", "This is a comic"),
 ]
 
 
@@ -257,14 +257,26 @@ def test_arcformat(monkeypatch):
 
 
 weekly_info_tests = [
-    (('12', '2025', '42'), {'endweek': 'March 22, 2025', 'last_update': 'None', 'midweek': '2025-03-19', 'next_weeknumber': 13,
+    (('12', '2025'), {'endweek': 'March 22, 2025', 'last_update': 'None', 'midweek': '2025-03-19', 'next_weeknumber': 13,
                             'next_year': 2025, 'prev_weeknumber': 11, 'prev_year': 2025, 'startweek': 'March 16, 2025',
                             'weeknumber': 12, 'year': 2025}),
-    (('52', '2024', '52'), {'endweek': 'January 04, 2025', 'last_update': 'None', 'midweek': '2025-01-01', 'next_weeknumber': '00',
-                            'next_year': 2025, 'prev_weeknumber': 51, 'prev_year': 2024, 'startweek': 'December 29, 2024',
-                            'weeknumber': 52, 'year': 2024}),
-    (('01', '2019', '11'), {'endweek': 'January 12, 2019', 'last_update': 'None', 'midweek': '2019-01-09', 'next_weeknumber': 2,
-                            'next_year': 2019, 'prev_weeknumber': 0, 'prev_year': 2019, 'startweek': 'January 06, 2019',
+    (('52', '2025'), {'endweek': 'December 27, 2025', 'last_update': 'None', 'midweek': '2025-12-24', 'next_weeknumber': 53,
+                            'next_year': 2025, 'prev_weeknumber': 51, 'prev_year': 2025, 'startweek': 'December 21, 2025',
+                            'weeknumber': 52, 'year': 2025}),
+    (('53', '2025'), {'endweek': 'January 03, 2026', 'last_update': 'None', 'midweek': '2025-12-31', 'next_weeknumber': 1,
+                            'next_year': 2026, 'prev_weeknumber': 52, 'prev_year': 2025, 'startweek': 'December 28, 2025',
+                            'weeknumber': 53, 'year': 2025}),
+    (('01', '2026'), {'endweek': 'January 10, 2026', 'last_update': 'None', 'midweek': '2026-01-07', 'next_weeknumber': 2,
+                            'next_year': 2026, 'prev_weeknumber': 53, 'prev_year': 2025, 'startweek': 'January 04, 2026',
+                            'weeknumber': 1, 'year': 2026}),
+    (('52', '2026'), {'endweek': 'January 02, 2027', 'last_update': 'None', 'midweek': '2026-12-30', 'next_weeknumber': 1,
+                            'next_year': 2027, 'prev_weeknumber': 51, 'prev_year': 2026, 'startweek': 'December 27, 2026',
+                            'weeknumber': 52, 'year': 2026}),
+    (('53', '2026'), {'endweek': 'January 09, 2027', 'last_update': 'None', 'midweek': '2027-01-06', 'next_weeknumber': 2,
+                            'next_year': 2027, 'prev_weeknumber': 52, 'prev_year': 2026, 'startweek': 'January 03, 2027',
+                            'weeknumber': 1, 'year': 2027}),
+    (('01', '2019'), {'endweek': 'January 05, 2019', 'last_update': 'None', 'midweek': '2019-01-02', 'next_weeknumber': 2,
+                            'next_year': 2019, 'prev_weeknumber': 52, 'prev_year': 2018, 'startweek': 'December 30, 2018',
                             'weeknumber': 1, 'year': 2019}),
 ]
 
@@ -277,7 +289,8 @@ def test_weekly_info_format0(patch_datetime, monkeypatch, input, result):
     monkeypatch.setattr(mylar.CONFIG, "DESTINATION_DIR", os.getcwd(), raising=False)
     monkeypatch.setattr(mylar.CONFIG, "WEEKFOLDER_FORMAT", 0, raising=False)
 
-    assert helpers.weekly_info(*input) == {'current_weeknumber': '51',
+    # current_weeknumber is fixed by the datetime patch
+    assert helpers.weekly_info(*input) == {'current_weeknumber': '52',
                                            'endweek': result['endweek'],
                                            'last_update': result['last_update'],
                                            'midweek': result['midweek'],
@@ -299,7 +312,7 @@ def test_weekly_info_format1(patch_datetime, monkeypatch, input, result):
     monkeypatch.setattr(mylar.CONFIG, "DESTINATION_DIR", os.getcwd(), raising=False)
     monkeypatch.setattr(mylar.CONFIG, "WEEKFOLDER_FORMAT", 1, raising=False)
 
-    assert helpers.weekly_info(*input) == {'current_weeknumber': '51',
+    assert helpers.weekly_info(*input) == {'current_weeknumber': '52',
                                            'endweek': result['endweek'],
                                            'last_update': result['last_update'],
                                            'midweek': result['midweek'],

@@ -2696,115 +2696,68 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
     #torrent_info['snatch_status'] = snatch_status
     return torrent_info
 
-def weekly_info(week=None, year=None, current=None):
-    #find the current week and save it as a reference point.
-    todaydate = datetime.datetime.today()
-    if todaydate.year == 2025:
-        current_weeknumber = todaydate.isocalendar()[1]
-    else:
-        current_weeknumber = todaydate.strftime("%U")
-    if current is not None:
-        c_weeknumber = int(current[:current.find('-')])
-        c_weekyear = int(current[current.find('-')+1:])
-    else:
-        c_weeknumber = week
-        c_weekyear = year
+def weekly_info(week=None, year=None):
+    """Generates data for Mylar's week numbering calendar.  This is aligned with TalkHard's view of weeks
+    where the nth week is defined by the number of Wednesdays in that year up to that point.  Mylar bounds
+    the week between Sunday and Saturday inclusive.  There are either 52 or 53 weeks in a year.
+
+    Args:
+        week: The week number.  If not included, will default to today's date.
+        year: The year number.
+
+    Returns:
+        A dict of current and neighbouring week data.
+    """
+    # TODO: End up having to do this twice to keep the current_weeknumber which is used for various checks.  This should all be split into smaller units.
+    # Calculate the current "week" based on the Wednesday
+    today_date: date = datetime.date.today()
+    shift_to_weds: int = 3 - ((today_date.weekday() + 1) % 7)
+    release_day: date = today_date + datetime.timedelta(days=shift_to_weds)
+    # Caclulates based on where the start of year falls (i.e. is it week 1 this year, or week 53 previous year)
+    first_jan = release_day.replace(day=1, month=1)
+    current_weeknumber =  (1 if ((first_jan.weekday() + 1) % 7) <= 3 else 0) + (release_day.timetuple().tm_yday // 7)
+    weeknumber = current_weeknumber
+    current_year = release_day.year
+    start_week: date = release_day + datetime.timedelta(days=-3)
+    end_week: date = release_day + datetime.timedelta(days=3)
+    leap_week = (first_jan.weekday() == 2) or (first_jan.weekday() == 1 and ((current_year % 4 == 0 and current_year % 100 != 0) or (current_year % 400 == 0)))
+    
 
     if week:
         weeknumber = int(week)
-        year = int(year)
-    else:
-        #find the given week number for the current day
-        weeknumber = int(current_weeknumber)
-        year = int(todaydate.strftime("%Y"))
+        current_year = int(year)
+        first_jan = datetime.date(current_year,1,1)
+        distance_to_weds = 3 - ((first_jan.weekday() + 1) % 7)
+        first_weds = datetime.date(current_year, 1, 8 + distance_to_weds) if distance_to_weds < 0 else datetime.date(current_year, 1, 1 + distance_to_weds)
+        release_day = first_weds + datetime.timedelta(weeks=weeknumber-1)
+        start_week: date = release_day + datetime.timedelta(days=-3)
+        end_week: date = release_day + datetime.timedelta(days=3)
+        leap_week = (first_jan.weekday() == 2) or (first_jan.weekday() == 1 and ((current_year % 4 == 0 and current_year % 100 != 0) or (current_year % 400 == 0)))
 
-    #monkey patch for 2018/2019 - week 52/week 0
-    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
-        weeknumber = 0
-        year = 2019
-    elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
-        weeknumber = 51
-        year = 2018
+        if weeknumber > 52 and not leap_week:
+            logger.warning(f'Tried to fetch week 53 for year {current_year} without leap week.  Correcting to week 1 {current_year+1}.')
+            weeknumber = 1
+            current_year += 1
 
-    #monkey patch for 2019/2020 - week 52/week 0
-    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]) or all([weeknumber == '52', year == '2019']):
-        weeknumber = 0
-        year = 2020
-    elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
-        weeknumber = 51
-        year = 2019
+    # Defaults
+    prev_weeknumber= weeknumber - 1
+    prev_year = current_year
+    next_weeknumber = weeknumber + 1
+    next_year = current_year
 
-    #monkey patch for 2020/2021 - week 52/week 0
-    if all([int(weeknumber) == 0, int(year) == 2021]) or all([int(weeknumber) == 52, int(year) == 2020]):
-        weeknumber = 52
-        year = 2020
+    if prev_weeknumber == 0:
+        prev_year = current_year - 1
+        prev_first_jan = datetime.date(prev_year, 1, 1)
+        prev_leap_week = (prev_first_jan.weekday() == 2) or (prev_first_jan.weekday() == 1 and ((prev_year % 4 == 0 and prev_year % 100 != 0) or (prev_year % 400 == 0)))
+        prev_weeknumber = 53 if prev_leap_week else 52
+    elif (next_weeknumber == 53 and not leap_week) or (next_weeknumber > 53):
+        next_weeknumber = 1
+        next_year = current_year + 1
 
-    #monkey patch for 2021/2022 - week 52/week 0
-    if all([int(weeknumber) == 0, int(year) == 2022]) or all([int(weeknumber) == 52, int(year) == 2021]):
-        weeknumber = 52
-        year = 2021
-
-    #monkey patch for 2024/2025 - week 52/week 0
-    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2024]) or all([weeknumber == '52', year == '2024']):
-        weeknumber = 1
-        year = 2025
-    elif any([weeknumber == 52, weeknumber == 0]) and all([c_weeknumber == 1, c_weekyear == 2025]):
-        weeknumber = 51
-        year = 2024
-
-    startofyear = date(year,1,1)
-    week0 = startofyear - timedelta(days=startofyear.isoweekday())
-    stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
-    if year == 2025:
-        startweek = stweek + timedelta(weeks = weeknumber -1)
-    else:
-        startweek = stweek + timedelta(weeks = weeknumber)
-
-    midweek = startweek + timedelta(days = 3)
-    endweek = startweek + timedelta(days = 6)
-
-    if all([weeknumber == 1, year == 2021]):
-        # make sure the arrow going back will hit the correct week in the previous year.
-        prev_week = 52
-        prev_year = 2020
-    elif all([weeknumber == 0, year == 2022]):
-        # make sure the arrow going back will hit the correct week in the previous year.
-        prev_week = 52
-        prev_year = 2021
-    elif all([weeknumber == 0, year == 2025]):
-        # make sure the arrow going back will hit the correct week in the previous year.
-        prev_week = 51
-        prev_year = 2024
-    else:
-        prev_week = int(weeknumber) - 1
-        prev_year = year
-        if prev_week < 0:
-            prev_week = 52
-            prev_year = int(year) - 1
-
-    next_week = int(weeknumber) + 1
-    next_year = year
-    if next_week > 52:
-        next_year = int(year) + 1
-        if all([weeknumber == 52, year == 2020]):
-            # make sure the next arrow will hit the correct week in the following year.
-            next_week = '1'
-        elif all([weeknumber == 52, year == 2021]):
-            # make sure the next arrow will hit the correct week in the following year.
-            next_week = '1'
-        elif all([weeknumber == 51, year == 2024]):
-            # make sure the next arrow will hit the correct week in the following year.
-            next_week = '1'
-        else:
-            next_week = datetime.date(int(next_year),1,1).strftime("%U")
 
     date_fmt = "%B %d, %Y"
-    try:
-        con_startweek = "" + startweek.strftime(date_fmt)
-        con_endweek = "" + endweek.strftime(date_fmt)
-    except:
-        con_startweek = "" + startweek.strftime(date_fmt)
-        con_endweek = "" + endweek.strftime(date_fmt)
+    con_startweek = start_week.strftime(date_fmt)
+    con_endweek = end_week.strftime(date_fmt)
 
     if mylar.CONFIG.WEEKFOLDER_LOC is not None:
         weekdst = mylar.CONFIG.WEEKFOLDER_LOC
@@ -2819,14 +2772,14 @@ def weekly_info(week=None, year=None, current=None):
 
     weekinfo = {'weeknumber':         weeknumber,
                 'startweek':          con_startweek,
-                'midweek':            midweek.strftime('%Y-%m-%d'),
+                'midweek':            release_day.strftime('%Y-%m-%d'),
                 'endweek':            con_endweek,
-                'year':               year,
-                'prev_weeknumber':    prev_week,
+                'year':               current_year,
+                'prev_weeknumber':    prev_weeknumber,
                 'prev_year':          prev_year,
-                'next_weeknumber':    next_week,
+                'next_weeknumber':    next_weeknumber,
                 'next_year':          next_year,
-                'current_weeknumber': current_weeknumber,
+                'current_weeknumber': str(current_weeknumber).zfill(2),
                 'last_update':        weekly_last}
 
     if weekdst is not None:

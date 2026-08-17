@@ -3003,7 +3003,6 @@ class WebInterface(object):
         week = None
         year = None
         generateonly = False
-        current = None
         for k,v in list(args.items()):
             if k == 'week':
                 week = v
@@ -3011,8 +3010,6 @@ class WebInterface(object):
                 year = v
             elif k == 'generateonly':
                 generateonly = v
-            elif k == 'current':
-                current = v
 
         myDB = db.DBConnection()
         autowant = []
@@ -3027,7 +3024,7 @@ class WebInterface(object):
                                      "DisplayComicName": aw['DisplayComicName']})
         weeklyresults = []
         wantedcount = 0
-        weekinfo = helpers.weekly_info(week, year, current)
+        weekinfo = helpers.weekly_info(week, year)
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
             w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
