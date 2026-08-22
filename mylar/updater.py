@@ -1152,9 +1152,19 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 altnames += ascan['ReleaseComicName'] + '!!' + ascan['ReleaseComicID'] + '##'
         altnames = altnames[:-2]
     logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in ' + rescan['ComicLocation'])
+
+    # v1.1 Type-bypass: look up Mylar's single issue # for single-volume
+    # series so the FileChecker bypass uses the actual CV-assigned number
+    # (could be 1, 0, 220 — CV varies for single-volume series).
+    _single_issue_num = None
+    if rescan['Total'] == 1:
+        _siq = myDB.select("SELECT Issue_Number FROM issues WHERE ComicID=? LIMIT 1", [ComicID])
+        if _siq:
+            _single_issue_num = _siq[0]['Issue_Number']
+
     fca = []
     if archive is None:
-        tval = filechecker.FileChecker(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+        tval = filechecker.FileChecker(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames, comic_type=rescan['Type'], single_issue_series=(rescan['Total'] == 1), single_issue_number=_single_issue_num)
         tmpval = tval.listFiles()
         #tmpval = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
         comiccnt = int(tmpval['comiccount'])
@@ -1172,7 +1182,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 logger.fdebug(module + 'dir: ' + rescan['ComicLocation'])
                 logger.fdebug(module + 'os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
                 logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + secondary_folders)
-                mvals = filechecker.FileChecker(dir=secondary_folders, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+                mvals = filechecker.FileChecker(dir=secondary_folders, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames, comic_type=rescan['Type'], single_issue_series=(rescan['Total'] == 1), single_issue_number=_single_issue_num)
                 tmpv = mvals.listFiles()
                 #tmpv = filechecker.listFiles(dir=secondary_dir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
                 logger.fdebug(module + 'tmpv filecount: ' + str(tmpv['comiccount']))
@@ -1182,7 +1192,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             pass
     else:
 #        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
-        arcval = filechecker.FileChecker(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+        arcval = filechecker.FileChecker(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'], comic_type=rescan['Type'], single_issue_series=(rescan['Total'] == 1), single_issue_number=_single_issue_num)
         files_arc = arcval.listFiles()
         fca.append(files_arc)
         comiccnt = int(files_arc['comiccount'])

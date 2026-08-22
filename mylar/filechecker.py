@@ -44,7 +44,7 @@ if 'windows' not in platform.system().lower():
 
 class FileChecker(object):
 
-    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None, pp_mode=False):
+    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None, pp_mode=False, comic_type=None, single_issue_series=False, single_issue_number=None):
         #dir = full path to the series Comic Location (manual pp will just be psssing the already parsed filename)
         if dir:
             self.dir = dir
@@ -110,6 +110,19 @@ class FileChecker(object):
         self.dynamic_handlers = ['/','-',':',';','\'','"',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
+
+        # Type-bypass: when a One-Shot/GN/TPB/HC series has Mylar Total=1
+        # and the folder has exactly one non-marker file, parseit forces
+        # issue_number to the issue # Mylar got from CV (not always '1' —
+        # CV sometimes assigns random numbers like 220 to a single-issue
+        # series). Fixes the numeric-title-in-filename trap (e.g. "7174
+        # Annual (2022).cbr" being parsed as issue #7174). Marker files
+        # (primer/ashcan/preview/sneak peek not in the series name) stay
+        # orphaned in the same folder; only the main file gets matched.
+        # See: scripts/mylar_type_bypass_patch.py for re-apply on update.
+        self.comic_type = comic_type
+        self.single_issue_series = bool(single_issue_series)
+        self.single_issue_number = single_issue_number
 
         #pre-generate the AS_Alternates now
         AS_Alternates = self.altcheck()
@@ -1319,6 +1332,155 @@ class FileChecker(object):
                     issue_number = isn
                 series_name = re.sub('special', '', series_name, flags=re.I).strip()
                 series_name_decoded = re.sub('special', '', series_name_decoded, flags=re.I).strip()
+
+        # ---- Type-bypass v1.1 for single-volume publications -------------
+        # Fixes Mylar's filename parser when the title contains digits that
+        # aren't the issue number — e.g. "7174 Annual (2022).cbr" (parser
+        # grabs 7174 as issue#), "Cyberpunk 2077 (2021)" (grabs 2077),
+        # "1001 Reasons (2024)" (grabs 1001). For single-volume Types
+        # (One-Shot/GN/TPB/HC) we skip the parser's number extraction and
+        # use Mylar's actual CV-assigned issue # (could be 1, 0, 220, etc.).
+        #
+        # Bypass fires when ALL of:
+        #   - comic_type is single-volume
+        #   - single_issue_series is True (Mylar Total == 1)
+        #   - single_issue_number was passed (caller looked it up in mylar.db)
+        #   - folder has exactly ONE non-marker comic file
+        #   - this parse pass is on that non-marker file
+        # A "marker" file has primer/ashcan/preview/sneak peek in its name
+        # AND that word is NOT in the series name (so series named "Primer"
+        # or "The [TR]Ashcan" aren't treated as markers). Marker files in
+        # the same folder stay orphaned (correct — Mylar has no issue # for
+        # them; CV doesn't track most ashcans/primers as separate issues).
+        # NOT included as markers: 'annual', 'holiday special' (too unreliable).
+        try:
+            _ct = getattr(self, 'comic_type', None)
+            _sis = getattr(self, 'single_issue_series', False)
+            _sin = getattr(self, 'single_issue_number', None)
+            if (_ct in ('One-Shot', 'GN', 'Graphic Novel', 'TPB', 'HC')
+                    and _sis and _sin is not None):
+                _folder = self.dir if self.dir and os.path.isdir(self.dir) else None
+                if _folder:
+                    _ft = ('.cbr', '.cbz', '.cb7', '.pdf')
+                    _all = [_f for _f in os.listdir(_folder)
+                            if _f.lower().endswith(_ft)]
+                    _markers = ('primer', 'ashcan', 'preview', 'sneak peek')
+                    _watch_low = (self.watchcomic or '').lower()
+                    def _is_marker(_fn):
+                        _fl = _fn.lower()
+                        return any(_m in _fl and _m not in _watch_low
+                                   for _m in _markers)
+                    _non_marker = [_f for _f in _all if not _is_marker(_f)]
+                    if len(_non_marker) == 1 and filename == _non_marker[0]:
+                        if str(issue_number) != str(_sin):
+                            logger.fdebug(
+                                '[TYPE-BYPASS] Type=%s + Mylar Total=1 + '
+                                'single non-marker file (%d of %d in folder). '
+                                'Overriding parsed issue_number %r -> %r '
+                                '(using Mylar/CV-assigned single issue#)' %
+                                (_ct, 1, len(_all), issue_number, _sin)
+                            )
+                        issue_number = _sin
+                        if booktype == 'issue':
+                            booktype = 'GN' if _ct == 'Graphic Novel' else _ct
+                        # v1.7 series_name override: filename significant
+                        # tokens must EQUAL the ordered tokens of EITHER
+                        # watchcomic OR any AltSearch entry (after paren
+                        # strip + issue#/year exclusion). Same words,
+                        # same sequence, no extras, no missing. AltSearch
+                        # is how the user declares "this alternate name
+                        # is also valid for this series" -- the bypass
+                        # respects that. Anything else REFUSE.
+                        # Stops are only true articles/prepositions.
+                        if self.watchcomic and series_name != self.watchcomic:
+                            _stop = {
+                                'the', 'and', 'a', 'an', 'of', 'in', 'to',
+                                'for', 'on', 'at', 'by', 'with', 'or',
+                            }
+                            # Drop the override issue# from BOTH sides
+                            # so legit "Series 001 (Year)" filenames
+                            # don't trip on the extra issue tag. KEEP
+                            # year as an anchor -- "Avengers 1999" and
+                            # "Hellboy Winter Special 2018" have year
+                            # baked into the CV title and that's
+                            # load-bearing for distinguishing files.
+                            _drop_norms = set()
+                            for _d in (_sin, issue_number):
+                                if _d is None or _d == '':
+                                    continue
+                                _ds = str(_d)
+                                _drop_norms.add(_ds)
+                                if _ds.isdigit():
+                                    _drop_norms.add(_ds.lstrip('0') or '0')
+                            def _toks_ordered(_s):
+                                _s = re.sub(r'\([^)]*\)', '', _s or '')
+                                _s = _s.lower()
+                                _out = []
+                                for _t in re.findall(r"[a-z0-9'\-]+", _s):
+                                    if _t in _stop:
+                                        continue
+                                    if not (_t.isdigit() or len(_t) >= 2):
+                                        continue
+                                    _tn = _t.lstrip('0') if _t.isdigit() else _t
+                                    if _t in _drop_norms or _tn in _drop_norms:
+                                        continue
+                                    _out.append(_t)
+                                return _out
+                            _wc_list = _toks_ordered(self.watchcomic)
+                            _fn_base = os.path.splitext(filename)[0]
+                            _fn_list = _toks_ordered(_fn_base)
+                            # Build the list of acceptable target names:
+                            # watchcomic + each AltSearch entry. AltSearch
+                            # is stored as "Name1!!ID1##Name2!!ID2..." or
+                            # plain. Strip !!ID suffixes and split on ##.
+                            _candidates = [('watchcomic', self.watchcomic,
+                                            _wc_list)]
+                            _alt_raw = getattr(self, 'AlternateSearch', None)
+                            if _alt_raw and _alt_raw.lower() != 'none':
+                                for _entry in _alt_raw.split('##'):
+                                    _name = _entry.split('!!')[0].strip()
+                                    if not _name:
+                                        continue
+                                    _candidates.append(
+                                        ('altsearch', _name,
+                                         _toks_ordered(_name))
+                                    )
+                            _matched = None
+                            for _src, _name, _toks in _candidates:
+                                if _fn_list and _fn_list == _toks:
+                                    _matched = (_src, _name, _toks)
+                                    break
+                            if _matched:
+                                logger.fdebug(
+                                    '[TYPE-BYPASS] series_name override: %r -> '
+                                    '%r via %s (filename ordered tokens %r '
+                                    '== %s ordered tokens %r)' %
+                                    (series_name, _matched[1], _matched[0],
+                                     _fn_list, _matched[0], _matched[2])
+                                )
+                                series_name = _matched[1]
+                                try:
+                                    series_name_decoded = _matched[1]
+                                except Exception:
+                                    pass
+                            else:
+                                _extras = set(_fn_list) - set(_wc_list)
+                                _missing = set(_wc_list) - set(_fn_list)
+                                logger.fdebug(
+                                    '[TYPE-BYPASS] series_name override '
+                                    'REFUSED: filename %r tokens=%r did not '
+                                    'match watchcomic %r tokens=%r nor any '
+                                    'AltSearch entry %r. (extras vs wc=%r, '
+                                    'missing vs wc=%r). Add an AltSearch '
+                                    'whose tokens match the filename.' %
+                                    (filename, _fn_list, self.watchcomic,
+                                     _wc_list,
+                                     [c[1] for c in _candidates[1:]],
+                                     _extras, _missing)
+                                )
+        except Exception as _e:
+            logger.fdebug('[TYPE-BYPASS] check failed: %s' % _e)
+        # ------------------------------------------------------------------
 
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
             bythepass = False
