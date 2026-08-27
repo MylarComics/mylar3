@@ -76,3 +76,23 @@ def test_manual_filename_parsing(monkeypatch, filename, series, issue, year, vol
                 volume,
                 year,
                 issue))
+
+
+@pytest.mark.unit
+def test_series_title_with_trailing_year_retained_when_watchcomic_known(monkeypatch):
+    # Regression test: series whose real title ends in a bare (non-parenthesized) 4-digit
+    # number that looks like a year - e.g. "American Vampire 1976" (a real series title,
+    # not a year suffix) - must not have that trailing number silently dropped from the
+    # reconstructed series_name when the known series name (watchcomic) confirms it belongs
+    # there. forceRescan()/markissues()/refreshSeries() all pass the known ComicName in as
+    # watchcomic, so this context is available in the real failure case.
+    monkeypatch.setattr(mylar, "CONFIG", mylar.config.Config("./nothing"))
+    monkeypatch.setattr(mylar.CONFIG, "IGNORE_SEARCH_WORDS", [], raising=False)
+    monkeypatch.setattr(mylar.CONFIG, "CUSTOM_ISSUE_EXCEPTIONS", [], raising=False)
+
+    filename = "American Vampire 1976 007.cbz"
+    fc_obj = filechecker.FileChecker(watchcomic="American Vampire 1976", file=filename, justparse=True, manual=True)
+    parsed = fc_obj.parseit(path='/dummypath/', filename=filename)
+
+    assert parsed['series_name'] == "American Vampire 1976"
+    assert parsed['issue_number'] == "007"

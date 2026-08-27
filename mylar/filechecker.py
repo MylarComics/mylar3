@@ -1232,7 +1232,16 @@ class FileChecker(object):
         if yearposition != 0:
             if yearposition is not None and yearposition < highest_series_pos:
                 if yearposition+1 == highest_series_pos:
-                    highest_series_pos = yearposition
+                    #normally the year immediately preceding the issue number is a standalone
+                    #launch-year and not part of the title (eg. 'Batman 2016 001.cbz'), so it gets
+                    #stripped from the reconstructed series title. Some real series titles legitimately
+                    #end in a bare year though (eg. 'American Vampire 1976'), so only strip it here if
+                    #doing so wouldn't contradict the already-known series title (self.watchcomic).
+                    year_inclusive_name = ' '.join(split_file[:highest_series_pos])
+                    if self.watchcomic is not None and self.watchcomic.strip().lower() == year_inclusive_name.strip().lower():
+                        logger.fdebug('year (%s) matches the known series title (%s) - retaining as part of series title.' % (split_file[yearposition], self.watchcomic))
+                    else:
+                        highest_series_pos = yearposition
                 else:
                     if split_file[yearposition+1] == '-' and yearposition+2 == highest_series_pos:
                         highest_series_pos = yearposition
