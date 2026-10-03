@@ -68,17 +68,11 @@ def pullsearch(comicapi, comicquery, offset, search_type):
     #all these imports are standard on most modern python implementations
     #logger.info('MB.PULLURL:' + PULLURL)
 
-    #new CV API restriction - one api request / second.
-    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
-        time.sleep(2)
-    else:
-        time.sleep(mylar.CONFIG.CVAPI_RATE)
-
-    #download the file:
-    payload = None
-
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = cv.cv_request(PULLURL)
+    except cv.CVRateLimitAbort as e:
+        logger.warn('[COMICVINE] %s' % e)
+        return
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % e)
         return
@@ -86,16 +80,17 @@ def pullsearch(comicapi, comicquery, offset, search_type):
     try:
         dom = parseString(r.content) #(data)
     except ExpatError:
-        if 'Abnormal Traffic Detected' in r.content.decode('utf-8'):
-            logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
-        else:
-            logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
-            mylar.BACKENDSTATUS_CV = 'down'
+        logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
+        mylar.BACKENDSTATUS_CV = 'down'
         return
     except Exception as e:
         logger.warn('[ERROR] Error returned from CV: %s' % e)
         return
     else:
+        cverror = cv.cv_error(dom)
+        if cverror is not None:
+            logger.warn('[COMICVINE] ComicVine returned an error for the search request: %s' % cverror)
+            return
         return dom
 
 def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=False, page=None, pageSize=None):
@@ -543,28 +538,16 @@ def storyarcinfo(xmlid):
     ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,publisher,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
     #logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
 
-    #new CV API restriction - one api request / second.
-    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
-        time.sleep(2)
-    else:
-        time.sleep(mylar.CONFIG.CVAPI_RATE)
-
-    #download the file:
-    payload = None
-
     try:
-        r = requests.get(ARCPULL_URL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = cv.cv_request(ARCPULL_URL)
     except Exception as e:
         logger.warn('While parsing data from ComicVine, got exception: %s' % e)
         return
 
     try:
         arcdom = parseString(r.content)
-    except ExpatError:
-        if '<title>Abnormal Traffic Detected' in r.content:
-            logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
-        else:
-            logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))
+    except ExpatError as e:
+        logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))
         return
     except Exception as e:
         logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))

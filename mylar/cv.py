@@ -23,6 +23,71 @@ import requests
 import datetime
 from operator import itemgetter
 
+RATELIMIT_WAITS = [120, 300, 600, 900, 1800, 3600]
+
+
+class CVRateLimitAbort(Exception):
+    pass
+
+
+def ratelimit_reason(r):
+    try:
+        if r.status_code in (420, 429):
+            return 'HTTP %s' % r.status_code
+        head = r.content[:2048].decode('utf-8', 'ignore')
+    except Exception:
+        return None
+    if 'Abnormal Traffic Detected' in head:
+        return 'Abnormal Traffic Detected'
+    err = re.search(r'<error>(.*?)</error>|"error"\s*:\s*"(.*?)"', head, re.S)
+    if err:
+        errtext = (err.group(1) or err.group(2) or '').lower()
+        if any(['slow down' in errtext, 'rate limit' in errtext]):
+            return 'Rate limit exceeded'
+    if re.search(r'<status_code>\s*(107|420)\s*</status_code>|"status_code"\s*:\s*(107|420)\b', head):
+        return 'Rate limit exceeded'
+    return None
+
+
+def _cv_resource(url):
+    m = re.search(r'/api/([a-z_]+)', url)
+    if m:
+        return m.group(1)
+    return 'api'
+
+
+def _cv_wait(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        if mylar.SIGNAL in ('shutdown', 'restart', 'update'):
+            return False
+        time.sleep(min(5, max(0, end - time.time())))
+    return True
+
+
+def cv_request(url, params=None, timeout=None):
+    resource = _cv_resource(url)
+    attempt = 0
+    while True:
+        if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
+            time.sleep(2)
+        else:
+            time.sleep(mylar.CONFIG.CVAPI_RATE)
+
+        r = requests.get(url, params=params, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS, timeout=timeout)
+        reason = ratelimit_reason(r)
+        if reason is None:
+            if attempt > 0:
+                logger.info('[COMICVINE] Rate limit has cleared - resuming requests to the %s resource.' % resource)
+            return r
+
+        wait = RATELIMIT_WAITS[min(attempt, len(RATELIMIT_WAITS) - 1)]
+        attempt += 1
+        logger.warn('[COMICVINE] ComicVine rate limit hit on the \'%s\' resource (%s). Waiting %s minutes before retrying (attempt %s) - nothing is being skipped.' % (resource, reason, round(wait / 60, 1), attempt))
+        if not _cv_wait(wait):
+            raise CVRateLimitAbort('Aborted while waiting on the ComicVine rate limit')
+
+
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
@@ -65,14 +130,11 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     elif rtype == 'db_updater':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=json&filter=date_last_updated:'+dateinfo['start_date']+'|'+dateinfo['end_date']+'&field_list=date_last_updated,id,volume,issue_number&sort=date_last_updated:asc&offset=' + str(offset)
     #logger.info('CV.PULLURL: ' + PULLURL)
-    #new CV API restriction - one api request / second.
-    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
-        time.sleep(2)
-    else:
-        time.sleep(mylar.CONFIG.CVAPI_RATE)
-
     try:
-        r = requests.get(PULLURL, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = cv_request(PULLURL)
+    except CVRateLimitAbort as e:
+        logger.warn('[COMICVINE] %s' % e)
+        return
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         if all(['Expecting value: line 1 column 1' not in str(e), rtype != 'db_updater']):
@@ -105,7 +167,27 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
             mylar.BACKENDSTATUS_CV = 'down'
             return
     else:
+        cverror = cv_error(dom)
+        if cverror is not None:
+            logger.warn('[COMICVINE] ComicVine returned an error for the %s request: %s' % (rtype, cverror))
+            if rtype == 'db_updater':
+                return False
+            return
         return dom
+
+def cv_error(dom):
+    try:
+        if isinstance(dom, dict):
+            code = dom.get('status_code')
+            msg = dom.get('error')
+        else:
+            code = dom.getElementsByTagName('status_code')[0].firstChild.wholeText
+            msg = dom.getElementsByTagName('error')[0].firstChild.wholeText
+    except Exception:
+        return None
+    if code is None or str(code).strip() in ('1', '101'):
+        return None
+    return '%s [status_code: %s]' % (msg, code)
 
 def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None, dateinfo=None, series=False):
     if rtype == 'issue':
@@ -150,6 +232,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
             if not searched:
                 # if it's a CV timeout/error, just return what we have thus far and hopefully
                 # the next run will be able to catch things up
+                logger.warn('[COMICVINE] Unable to retrieve issues %s - %s of %s for %s. Only partial issue data was retrieved.' % (countResults, countResults + 100, totalResults, id))
                 break
             issuechoice, tmpdate = GetIssuesInfo(id, searched, arcid)
             if tmpdate < firstdate:
@@ -206,6 +289,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
             searched = pulldetails(None, 'import', offset=0, comicidlist=tmpidlist)
 
             if searched is None:
+                logger.warn('[IMPORT] Unable to reverse lookup IssueIDs %s - %s of %s from ComicVine. The remaining files will be imported by filename instead.' % (id_count, endcnt, len(comicidlist)))
                 break
             else:
                 tGIL = GetImportList(searched)
@@ -253,6 +337,8 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
             offset = 1
 
             resultlist = pulldetails(None, 'db_updater', offset=0, dateinfo=dateline)
+            if not resultlist:
+                return False
 
             totalResults = resultlist['number_of_total_results']
             logger.fdebug('There are %s total results' % totalResults)
@@ -1034,8 +1120,8 @@ def singleIssue(results):
 def GetImportList(results):
     importlist = results.getElementsByTagName('issue')
     serieslist = []
-    tempseries = {}
     for implist in importlist:
+        tempseries = {'ComicID': None, 'IssueID': None, 'ComicName': 'None', 'Issue_Name': None, 'Issue_Number': None}
         try:
             totids = len(implist.getElementsByTagName('id'))
             idt = 0
@@ -1072,7 +1158,7 @@ def GetImportList(results):
             if 'Issue #' in tempseries['Issue_Number']:
                 tempseries['Issue_Number'] = re.sub('Issue #', '', tempseries['Issue_Number']).strip()
 
-        logger.info('tempseries:' + str(tempseries))
+        logger.fdebug('tempseries:' + str(tempseries))
         serieslist.append({"ComicID":      tempseries['ComicID'],
                            "IssueID":      tempseries['IssueID'],
                            "ComicName":    tempseries['ComicName'],
