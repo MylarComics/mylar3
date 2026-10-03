@@ -6189,24 +6189,24 @@ class WebInterface(object):
         queue = queue.Queue()
 
         importoptions = {'comic_dir':              path,
-                         'imp_move':               bool(imp_move),
-                         'imp_rename':             bool(imp_rename),
-                         'imp_metadata':           bool(imp_metadata),
-                         'imp_paths':              bool(imp_paths),
-                         'imp_seriesfolders':      bool(imp_seriesfolders),
-                         'add_comics':             bool(autoadd)}
+                         'imp_move':               helpers.str_to_bool(imp_move),
+                         'imp_rename':             helpers.str_to_bool(imp_rename),
+                         'imp_metadata':           helpers.str_to_bool(imp_metadata),
+                         'imp_paths':              helpers.str_to_bool(imp_paths),
+                         'imp_seriesfolders':      helpers.str_to_bool(imp_seriesfolders),
+                         'add_comics':             helpers.str_to_bool(autoadd)}
 
         mylar.CONFIG.configure(update=True)
         # Write the config
         logger.info('Now updating config...')
         mylar.CONFIG.writeconfig(values=importoptions)
 
-        if mylar.IMPORTLOCK and bool(forcescan) is True:
+        if mylar.IMPORTLOCK and helpers.str_to_bool(forcescan) is True:
             logger.info('Removing Current lock on import - if you do this AND another process is legitimately running, your causing your own problems.')
             mylar.IMPORTLOCK = False
 
         #thread the scan.
-        if bool(scan) is True:
+        if helpers.str_to_bool(scan) is True:
             scan = True
             mylar.IMPORT_STATUS = 'Now starting the import'
             return self.ThreadcomicScan(scan, queue)

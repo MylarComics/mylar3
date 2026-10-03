@@ -17,6 +17,12 @@ def test_checked(var, result):
     assert helpers.checked(var) == result
 
 
+@pytest.mark.parametrize("var,result", [('0', False), ('1', True), ('true', True), ('False', False), ('', False), (0, False), (1, True), (None, False), ('on', True)])
+@pytest.mark.unit
+def test_str_to_bool(var, result):
+    assert helpers.str_to_bool(var) is result
+
+
 @pytest.mark.parametrize("var,pos,result", [(0, 0, 'Checked'), (0, 1, ''), (1, 0, ''), (5, 5, 'Checked')])
 @pytest.mark.unit
 def test_radio(var, pos, result):
