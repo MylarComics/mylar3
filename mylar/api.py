@@ -602,12 +602,12 @@ class Api(object):
             if comicid.startswith('4050-'):
                 comicid = re.sub('4050-', '', comicid).strip()
 
-            chkdb = myDB.selectone(f"SELECT ComicName, ComicYear FROM comics WHERE ComicID='{comicid}'").fetchone()
+            chkdb = myDB.selectone("SELECT ComicName, ComicYear FROM comics WHERE ComicID=?", [comicid]).fetchone()
             if not chkdb:
                 notfound.append({'comicid': comicid})
             else:
-                if comicid not in mylar.REFRESH_QUEUE.queue: #if not any(ext['comicid'] == comicid for ext in mylar.REFRESH_LIST):
-                    watch.append({"comicid": comicid, "comicname": chkdb['ComicName']})
+                if not any(isinstance(q, dict) and q.get('comicid') == comicid for q in list(mylar.REFRESH_QUEUE.queue)):
+                    watch.append({"comicid": comicid, "comicname": chkdb['ComicName'], "seriesyear": chkdb['ComicYear']})
                 else:
                     already_added.append({'comicid': comicid, 'comicname': chkdb['ComicName']})
 

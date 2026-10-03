@@ -34,6 +34,7 @@ def addvialist(queue):
             #logger.fdebug('addvialist - item: %s' % (item,))
             if item == 'exit':
                 break
+            item.setdefault('seriesyear', None)
             try:
                 r_mode = item['r_mode']
             except Exception:
