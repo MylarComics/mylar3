@@ -6998,6 +6998,8 @@ class WebInterface(object):
                     "airdcpp_announce_hub": mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB,
                     "airdcpp_announce_bots": mylar.CONFIG.AIRDCPP_ANNOUNCE_BOTS,
                     "ddl_prefer_upscaled": helpers.checked(mylar.CONFIG.DDL_PREFER_UPSCALED),
+                    "enable_flaresolverr": helpers.checked(mylar.CONFIG.ENABLE_FLARESOLVERR),
+                    "flaresolverr_url": mylar.CONFIG.FLARESOLVERR_URL or "",
                     "jd2_enable": helpers.checked(mylar.CONFIG.JD2_ENABLE),
                     "jd2_url": mylar.CONFIG.JD2_URL or "",
                     "jd2_dest_dir": mylar.CONFIG.JD2_DEST_DIR or "",
@@ -7492,7 +7494,7 @@ class WebInterface(object):
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
-                           'enable_getcomics', 'enable_airdcpp', 'jd2_enable', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
+                           'enable_getcomics', 'enable_flaresolverr', 'enable_airdcpp', 'jd2_enable', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:

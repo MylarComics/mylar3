@@ -904,6 +904,16 @@
                                            <div class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
                                                 <input type="checkbox" id="ddl_prefer_upscaled" name="ddl_prefer_upscaled" value="1" ${config['ddl_prefer_upscaled']} /><label>Prefer HD-Upscale/HD-Digital <small>(if available></small></label>
                                            </div>
+                                           <div class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
+                                                <input type="checkbox" id="enable_flaresolverr" onclick="initConfigCheckbox($(this));" name="enable_flaresolverr" value="1" ${config['enable_flaresolverr']} /><label>Use FlareSolverr</label>
+                                           </div>
+                                           <div id="flaresolverr_options" style="display:none;padding-left:1.5em;">
+                                               <div class="row">
+                                                   <label>FlareSolverr URL</label>
+                                                   <input type="text" name="flaresolverr_url" id="flaresolverr_url" value="${config['flaresolverr_url']}" size="30">
+                                                   <small>(ex. http://192.168.1.2:8191/v1 - include /v1)</small>
+                                               </div>
+                                           </div>
                                        </div>
                                        <div class="row checkbox left clearfix">
                                             <input type="checkbox" id="jd2_enable" onclick="initConfigCheckbox($(this));" name="jd2_enable" value="1" ${config['jd2_enable']} /><label>Send to JDownloader2</label>
@@ -2194,6 +2204,25 @@ $("#enable_airdcpp").click(function(){
                                 //document.getElementById("enable_getcomics").checked = false;
                                 $("#ddl_providers").slideUp();
                                 $("#gc_options").slideUp();
+                        }
+                });
+
+                if ($("#enable_flaresolverr").is(":checked"))
+                        {
+                                $("#flaresolverr_options").slideDown();
+                        }
+                else    {
+                                $("#flaresolverr_options").slideUp();
+                        }
+
+                $("#enable_flaresolverr").click(function(){
+                        if ($("#enable_flaresolverr").is(":checked"))
+                        {
+                                $("#flaresolverr_options").slideDown();
+                        }
+                        else
+                        {
+                                $("#flaresolverr_options").slideUp();
                         }
                 });
 
