@@ -142,21 +142,37 @@ def ddl_downloader(queue):
                             link_type_failure[item['id']] = [item['link_type']]
                         logger.fdebug('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
                         ggc = getcomics.GC(comicid=item['comicid'], issueid=item['issueid'], oneoff=item['oneoff'])
-                        ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
+                        redo = ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
+                        if isinstance(redo, dict) and 'links_exhausted' in redo:
+                            ddl_give_up(myDB, item, ctrlval, link_type_failure)
                     else:
-                        logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure[item['id']], item['issueid']))
-                        nval = {'status':  'Failed',
-                                'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
-                        myDB.upsert('ddl_info', nval, ctrlval)
-                        helpers.reverse_the_pack_snatch(item['id'], item['comicid'])
-                        link_type_failure.pop(item['id'])
-                        ddl_cleanup(item['id'])
+                        ddl_give_up(myDB, item, ctrlval, link_type_failure)
                 else:
                     logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['site'], ddzstat))
                     myDB.action('DELETE FROM ddl_info where id=?', [item['id']])
                     mylar.search.FailedMark(item['issueid'], item['comicid'], item['id'], ddzstat['filename'], item['site'])
         else:
             time.sleep(5)
+
+
+def ddl_give_up(myDB, item, ctrlval, link_type_failure):
+    logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure.get(item['id']), item['issueid']))
+    myDB.upsert('ddl_info', {'status': 'Failed',
+                             'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}, ctrlval)
+    helpers.reverse_the_pack_snatch(item['id'], item['comicid'])
+    try:
+        is_pack = item['comicinfo'][0]['pack'] is True
+    except Exception:
+        is_pack = False
+    if all([not is_pack, not item.get('oneoff'), item.get('issueid') is not None]):
+        try:
+            mylar.search.FailedMark(item['issueid'], item['comicid'], item['id'], item['series'], item['site'])
+        except Exception as e:
+            logger.warn('[REDO] Unable to mark issueid %s as Failed: %s' % (item['issueid'], e))
+    if item['id'] in mylar.DDL_QUEUED:
+        mylar.DDL_QUEUED.remove(item['id'])
+    link_type_failure.pop(item['id'], None)
+    ddl_cleanup(item['id'])
 
 
 def ddl_cleanup(record_id):

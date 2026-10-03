@@ -137,10 +137,34 @@ def _poll_pending(client, myDB, pending):
                 item.get('jd2_job_id'),
             )
             logger.warn('[JD2-QUEUE] Record %s failed in JD2.', record_id)
+            if saved:
+                _fail_issue(myDB, item, record_id)
         else:
             continue
         if saved:
             pending.pop(record_id, None)
+
+
+def _fail_issue(myDB, item, record_id):
+    issueid = item.get('issueid')
+    comicid = item.get('comicid')
+    pack = bool(item.get('pack'))
+    try:
+        pack = pack or item['comicinfo'][0]['pack'] is True
+    except (KeyError, IndexError, TypeError):
+        pass
+    if pack:
+        helpers.reverse_the_pack_snatch(record_id, comicid)
+        return
+    if not issueid or issueid == 'None' or item.get('oneoff'):
+        return
+    try:
+        mylar.search.FailedMark(
+            issueid, comicid, record_id, _package_name(item, record_id),
+            item.get('site') or 'DDL(GetComics)',
+        )
+    except Exception as err:
+        logger.warn('[JD2-QUEUE] Unable to mark issue %s as Failed: %s', issueid, err)
 
 
 def _start_download(client, myDB, item, record_id):
