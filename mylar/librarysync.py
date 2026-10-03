@@ -527,6 +527,35 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         mylar.IMPORT_STATUS = 'Now Reverse looking up ' + str(len(reverse_issueids)) + ' IssueIDs to get the ComicIDs'
         vals = mylar.cv.getComic(None, 'import', comicidlist=reverse_issueids)
         #logger.fdebug('vals returned:' + str(vals))
+        if not vals:
+            vals = []
+
+        resolved = dict((str(x['IssueID']), x['ComicID']) for x in vals if x.get('IssueID'))
+        unresolved = []
+        seen = set()
+        for x in issueid_list:
+            if str(x['issueid']) in resolved and str(x['issueid']) not in seen:
+                seen.add(str(x['issueid']))
+            else:
+                unresolved.append(x)
+        if unresolved:
+            logger.warn('[IMPORT] %s of %s files with IssueIDs could not be matched up via the ComicVine lookup (unresolved or duplicate IssueIDs) - these will be imported by series name instead.' % (len(unresolved), len(issueid_list)))
+            for x in unresolved:
+                ii = x['importinfo']
+                import_by_comicids.append({
+                    "impid": ii['impid'],
+                    "comicid": resolved.get(str(x['issueid'])),
+                    "watchmatch": None,
+                    "displayname": ii['comicname'],
+                    "comicname": ii['comicname'],
+                    "dynamicname": ii['dynamicname'],
+                    "comicyear": ii['comicyear'],
+                    "issuenumber": ii['issuenumber'],
+                    "volume": ii['volume'],
+                    "issueid": x['issueid'],
+                    "comfilename": ii['comfilename'],
+                    "comlocation": ii['comlocation']
+                                          })
 
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice
@@ -665,10 +694,14 @@ def scanLibrary(scan=None, queue=None):
 
             #first we do the CV ones.
             if int(soma['import_cv_ids']) > 0:
+                issueid_info = {}
+                for x in soma['issueid_list']:
+                    issueid_info.setdefault(str(x['issueid']), x['importinfo'])
                 for i in soma['CV_import_comicids']:
                     #we need to find the impid in the issueid_list as that holds the impid + other info
-                    abc = [x for x in soma['issueid_list'] if x['issueid'] == i['IssueID']]
-                    ghi = abc[0]['importinfo']
+                    ghi = issueid_info.get(str(i['IssueID']))
+                    if ghi is None:
+                        continue
 
                     nspace_dynamicname = re.sub(r'[\|\s]', '', ghi['dynamicname'].lower()).strip()                   
                     #these all have related ComicID/IssueID's...just add them as is.
