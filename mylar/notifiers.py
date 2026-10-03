@@ -731,21 +731,21 @@ class DISCORD:
             try:
                 response = requests.post(self.webhook_url, files=files, verify=True)
             except Exception as e:
-                logger.info(module + 'Discord notify failed: ' + str(e))
+                logger.warn(module + 'Discord notify failed: ' + str(e))
+                return False
         else:
             try:
                 response = requests.post(self.webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, verify=True)
             except Exception as e:
-                logger.info(module + 'Discord notify failed: ' + str(e))
+                logger.warn(module + 'Discord notify failed: ' + str(e))
+                return False
 
-        # Error logging
-        sent_successfuly = True
-        if not all([response.status_code == 204, response.status_code == 200]):
-            logger.info(module + 'Could not send notification to Discord (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
-            sent_successfuly = False
+        if response.status_code not in (200, 204):
+            logger.warn(module + 'Could not send notification to Discord. Response: [%s] %s' % (response.status_code, response.text))
+            return False
 
         logger.info(module + "Discord notifications sent.")
-        return sent_successfuly
+        return True
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
