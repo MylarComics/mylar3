@@ -1537,7 +1537,7 @@ class Api(object):
                     else:
                         newznabs.append(nz)
                 else:
-                    if providername.lower() == nz[0]:
+                    if providername.lower() == nz[0].lower():
                         del_match = True
                         prov_id = nz[6]
                         continue
@@ -1561,7 +1561,7 @@ class Api(object):
                     else:
                         torznabs.append(nz)
                 else:
-                    if providername.lower() == nz[0]:
+                    if providername.lower() == nz[0].lower():
                         del_match = True
                         prov_id = nz[6]
                         continue
