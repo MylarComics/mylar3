@@ -487,7 +487,7 @@ class FileChecker(object):
             current_pos +=1
             #the series title will always be first and be AT LEAST one word.
             if split_file.index(sf) >= 0 and not volumeprior:
-                dtcheck = re.sub(r'[\(\)\,]', '', sf).strip()
+                dtcheck = re.sub(r'[\(\)\[\]\,]', '', sf).strip()
                 #if there's more than one date, assume the right-most date is the actual issue date.
                 if any(['19' in dtcheck, '20' in dtcheck]) and not any([dtcheck.lower().startswith('v19'), dtcheck.lower().startswith('v20')]) and len(dtcheck) >=4:
                     logger.fdebug('checking date : %s' % dtcheck)
@@ -1161,7 +1161,7 @@ class FileChecker(object):
                 #logger.fdebug('split_file[issue_number_position]: [%s] -->  %s' % (issue_number_position, split_file[issue_number_position]))
                 #logger.fdebug('split_file[yearposition]: [%s] --> %s' % (yearposition, split_file[yearposition]))
                 #2024-01-07 - new for one-shot where no issue number in filename, but year is present in title
-                if split_file[issue_number_position] == re.sub(r'[\)\(]', '', split_file[yearposition]).strip():
+                if split_file[issue_number_position] == re.sub(r'[\)\(\]\[]', '', split_file[yearposition]).strip():
                     logger.fdebug('issue number is the same as year - assuming issue number is actually part of the title and this is a one-shot-type of book')
                     onefortheleader = True
                     if [True for x in split_file if x.lower() == 'annual']:
