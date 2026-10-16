@@ -149,7 +149,7 @@
             $.when($.ajax({
                  type: "GET",
                  url: "addbyid",
-                 data: { comicid: comicid, query_id: query_id },
+                 data: { comicid: arcid, query_id: query_id },
                  success: function(response) {
                     obj = JSON.parse(response);
                     console.log(obj);
