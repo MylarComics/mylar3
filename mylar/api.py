@@ -617,7 +617,7 @@ class Api(object):
         if len(already_added) == 1:
             self.data = self._successResponse('[%s] %s has already been queued for refresh in a queue of %s items.' % (already_added[0]['comicid'], already_added[0]['comicname'], mylar.REFRESH_QUEUE.qsize()))
         elif len(already_added) > 1:
-            self.data = self._successResponse('%s items (%s) have already been queued for refresh in a queue of % items.' % (len(already_added), already_added, mylar.REFRESH_QUEUE.qsize()))
+            self.data = self._successResponse('%s items (%s) have already been queued for refresh in a queue of %s items.' % (len(already_added), already_added, mylar.REFRESH_QUEUE.qsize()))
 
         if len(watch) == 1:
             logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s %s' % (chkdb['ComicName'], chkdb['ComicYear']))
@@ -638,7 +638,7 @@ class Api(object):
                 ref_line = 'for %s items (%s)' % (len(watch), watch)
 
             logger.warn('[API-refreshComic] Successfully background submitted refresh %s' % (ref_line))
-            self.data = self._successResponse('Refresh successfully submitted %s.' % (self.id, ref_line))
+            self.data = self._successResponse('Refresh successfully submitted %s.' % (ref_line,))
 
         return
 
@@ -686,7 +686,7 @@ class Api(object):
                 newWrite = {'ComicID': self.id}
                 myDB.upsert("comics", newValue, newWrite)
             except Exception as e:
-                self.data = self._failureResponse('[%s] Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
+                self.data = self._failureResponse('Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
                 return
             else:
                 self.data = self._successResponse('[%s] Updated Booktype to %s.' % (self.id, booktype))
@@ -1397,7 +1397,7 @@ class Api(object):
             if 'host' in kwargs:
                 newznab_host = kwargs['host']
                 if not newznab_host.startswith('http'):
-                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    self.data = self._failureResponse('protocol is required for %s host entry' % providertype)
                     logger.fdebug('[API][addProvider] %s' % (self.data,))
                     return
                 if newznab_host.startswith('https'):
@@ -1429,7 +1429,7 @@ class Api(object):
             if prov_line not in mylar.CONFIG.EXTRA_NEWZNABS:
                 mylar.CONFIG.EXTRA_NEWZNABS.append(prov_line)
             else:
-                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                self.data = self._failureResponse('exact details belong to another provider id already [%s]. Maybe you should be using changeProvider' % prov_id)
                 logger.fdebug('[API][addProvider] %s' % (self.data,))
                 return
 
@@ -1451,7 +1451,7 @@ class Api(object):
             if 'host' in kwargs:
                 torznab_host = kwargs['host']
                 if not torznab_host.startswith('http'):
-                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    self.data = self._failureResponse('protocol is required for %s host entry' % providertype)
                     logger.fdebug('[API][addProvider] %s' % (self.data,))
                     return
                 if torznab_host.startswith('https'):
@@ -1476,7 +1476,7 @@ class Api(object):
             if prov_line not in mylar.CONFIG.EXTRA_TORZNABS:
                 mylar.CONFIG.EXTRA_TORZNABS.append(prov_line)
             else:
-                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                self.data = self._failureResponse('exact details belong to another provider id already [%s]. Maybe you should be using changeProvider' % prov_id)
                 logger.fdebug('[API][addProvider] %s' % (self.data,))
                 return
 
@@ -1633,7 +1633,7 @@ class Api(object):
                 else:
                     prov_verify = '0'
             else:
-                self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                self.data = self._failureResponse('protocol is required for %s host entry' % providertype)
                 logger.fdebug('[API][changeProvider] %s' % (self.data,))
                 return
         else:
