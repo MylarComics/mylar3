@@ -168,7 +168,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
             if ComicID[:1] == "G":
                 mylar.importer.GCDimport(ComicID)
             else:
-                cchk = importer.addComictoDB(ComicID, mismatch)
+                cchk = mylar.importer.addComictoDB(ComicID, mismatch)
         else:
             if mylar.CONFIG.CV_ONETIMER == 1:
                 #if sched is True:

@@ -24,6 +24,7 @@ import json
 import codecs
 import shutil
 import re
+import sys
 import configparser
 from pathlib import Path
 import mylar
@@ -1551,7 +1552,7 @@ class Config(object):
                         chkpass = True
                     elif e.errno == 17: #file_already_exists
                         chkpass = True
-                except exception as e:
+                except Exception as e:
                     logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
                     ct_path = mylar.DATA_DIR
                     chkpass = True

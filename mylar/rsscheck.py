@@ -1306,7 +1306,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 requests.packages.urllib3.disable_warnings()
                 try:
-                    from urllib3.exceptions import InsecureRequestWarning
+                    import urllib3
                     urllib3.disable_warnings()
                 except ImportError:
                     logger.warn('[EPIC FAILURE] Cannot load the requests module')
