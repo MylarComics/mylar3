@@ -100,7 +100,7 @@ class Cache(object):
         else:
             return False
 
-    def get_artwork_from_cache(self, ComicID=None, imageURL=None):
+    def get_artwork_from_cache(self, ComicID=None, imageURL=None, IssueID=None):
         '''
         Pass a comicvine id to this function (either ComicID or IssueID)
         '''

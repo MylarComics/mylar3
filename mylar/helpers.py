@@ -2329,7 +2329,7 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
         try:
             auth = re.findall('^(?:.+?//)(.+?):(.+?)@(?:.+)$', host)
             if auth:
-                log.error('Cleanhost error: auth already defined in url: %s, please remove BasicAuth from url.', host)
+                logger.error('Cleanhost error: auth already defined in url: %s, please remove BasicAuth from url.' % host)
             else:
                 host = host.replace('://', '://%s:%s@' % (username, password), 1)
         except:

@@ -13,6 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
+from base64 import b16encode, b32decode
 import re
 import os
 import requests
@@ -138,7 +139,7 @@ class utorrentclient(object):
             if link.startswith("magnet:"):
                 torrent_hash = re.findall(r"urn:btih:([\w]{32,40})", link)[0]
                 if len(torrent_hash) == 32:
-                    torrent_hash = b16encode(b32decode(torrent_hash)).lower()
+                    torrent_hash = b16encode(b32decode(torrent_hash)).decode().lower()
                 thehash = torrent_hash.upper()
 
         if thehash is None:
