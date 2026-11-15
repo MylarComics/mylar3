@@ -43,7 +43,7 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
 
     try:
         fp = open(configFilename, "r")
-        config.readfp(fp)
+        config.read_file(fp)
         fp.close()
     except IOError as e:
         print("Could not read configuration file: ", str(e))
