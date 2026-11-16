@@ -228,7 +228,9 @@ class NZBGet(object):
                 logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove ComicRN from your category script in NZBGet.')
                 return {'status': 'double-pp', 'failed': False}
 
-            if all(['SUCCESS' in hq[0]['Status'], (hq[0]['FileSizeMB']*.95) <= hq[0]['DownloadedSizeMB'] <= (hq[0]['FileSizeMB']*1.05)]):
+            # SUCCESS means nzbget verified the download (par-check or full health). DownloadedSizeMB can be well below
+            # FileSizeMB then, as unneeded par2 recovery volumes are not downloaded (ParCheck=auto), so sizes are not compared.
+            if 'SUCCESS' in hq[0]['Status']:
                 logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
                 if os.path.isdir(hq[0]['DestDir']):
                     destdir = hq[0]['DestDir']
@@ -283,7 +285,7 @@ class NZBGet(object):
                         'ddl':      False,
                         'download_info': nzbinfo['download_info']}
             else:
-                logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
+                logger.warn('not post-processing %s: nzbget status is %s (size %sMB, downloaded %sMB) - expected a SUCCESS, FAILURE or COPY status. Location: %s' % (hq[0]['NZBName'], hq[0]['Status'], hq[0]['FileSizeMB'], hq[0]['DownloadedSizeMB'], hq[0]['DestDir']))
                 return {'status': 'file not found', 'failed': False}
 
             if mylar.CONFIG.NZBGET_DIRECTORY is not None:
