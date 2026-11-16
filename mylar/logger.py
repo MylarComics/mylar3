@@ -25,6 +25,30 @@ from mylar import helpers
 import logging
 from logging import getLogger, WARN, ERROR, INFO, DEBUG, StreamHandler, Formatter, Handler
 from six import PY2
+import re
+
+# indexer download links (newznab/torznab enclosures, private tracker .torrent links) carry the user's key,
+# as a query value (apikey=, api_key=, passkey=, key=, token=, r=) or a path segment (/apikey/<key>, /passkey/<key>)
+_KEY_PARAM = re.compile(r'(?i)(\b(?:api_?key|passkey|token|key|r)=|/(?:api_?key|passkey)/)[^&\s\'"/]+')
+
+
+def redact(text):
+    return _KEY_PARAM.sub(r'\1xUDONTNEEDTOKNOWTHISx', text)
+
+
+class RedactKeys(logging.Filter):
+    def filter(self, record):
+        try:
+            message = record.getMessage()
+        except Exception:
+            return True  # let the handler report the broken format as before
+        record.msg, record.args = redact(message), None
+        if record.exc_info and not record.exc_text:
+            record.exc_text = redact(''.join(traceback.format_exception(*record.exc_info)).rstrip('\n'))
+        return True
+
+
+logging.getLogger('mylar').addFilter(RedactKeys())
 
 #setup logger for non-english (this doesnt carry thru, so check here too)
 try:
@@ -142,6 +166,8 @@ if not LOG_LANG.startswith('en'):
             if PY2:
                 message = safe_unicode(message)
                 message = message.encode(mylar.SYS_ENCODING)
+            else:
+                message = redact(str(message))  # the web UI list is filled before the logger filter runs
             if level != 'DEBUG' or mylar.LOG_LEVEL >= 2:
                 mylar.LOGLIST.insert(0, (helpers.now(), message, level, threadname))
                 if len(mylar.LOGLIST) > 2500:
